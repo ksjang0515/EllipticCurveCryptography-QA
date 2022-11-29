@@ -1,5 +1,4 @@
 from typing import Union
-import os
 import warnings
 
 from dimod.binary import BinaryQuadraticModel
@@ -7,8 +6,8 @@ from dimod.vartypes import Vartype
 from dimod import ExactSolver
 from dimod.sampleset import SampleView
 
-from src.utilities import number_to_binary
-from src.bit import Bit
+from ecc.utilities import number_to_binary
+from ecc.bit import Bit
 
 
 

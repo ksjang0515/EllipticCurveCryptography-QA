@@ -10,7 +10,7 @@ data/
 !*.py
 !*.ipynb
 
-find_qubo.py
+ecc.find_qubo.py
 # test.ipynb
 # test.py
 
