@@ -1,5 +1,4 @@
 from typing import Union
-from dotenv import load_dotenv
 import os
 import warnings
 
@@ -12,12 +11,9 @@ from utilities import number_to_binary
 from bit import Bit
 
 
-load_dotenv()
-
 
 """TODO - Create type for single bit
 make bit type to be passed by reference so modification can be made"""
-"""TODO - Add naming to bit"""
 VariableType = Union[str, list[Bit]]
 ConstantType = Union[int, list[int]]
 
