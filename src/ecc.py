@@ -183,25 +183,33 @@ class EccController(Controller):
             self.ensure_modulo(c)
 
     def inv_modp(self, A: VariableType, C: VariableType, ensure_modulo=False) -> None:
+        """alias of mult_int_modp"""
         self.mult_inv_modp(A, C, ensure_modulo)
+
+    # def div_modp(
+    #     self, A: VariableType, B: VariableType, C: VariableType, ensure_modulo=False
+    # ) -> None:
+    #     """C = (A/B) mod p = (A*(B^-1 mod p)) mod p"""
+    #     a = self.check_VariableType(A)
+    #     b = self.check_VariableType(B)
+    #     c = self.check_VariableType(C)
+
+    #     if len(a) == len(b) == len(c) == self.length:
+    #         pass
+    #     else:
+    #         raise ValueError("Length does not match")
+
+    #     b_inv = self.get_bits(self.length)
+    #     self.mult_inv_modp(b, b_inv)
+
+    #     self.mult_modp(a, b_inv, c, ensure_modulo)
 
     def div_modp(
         self, A: VariableType, B: VariableType, C: VariableType, ensure_modulo=False
     ) -> None:
-        """C = (A/B) mod p = (A*(B^-1 mod p)) mod p"""
-        a = self.check_VariableType(A)
-        b = self.check_VariableType(B)
-        c = self.check_VariableType(C)
+        """C = (A/B) mod p => A = (B*C) mod p"""
 
-        if len(a) == len(b) == len(c) == self.length:
-            pass
-        else:
-            raise ValueError("Length does not match")
-
-        b_inv = self.get_bits(self.length)
-        self.mult_inv_modp(b, b_inv)
-
-        self.mult_modp(a, b_inv, c, ensure_modulo)
+        self.mult_modp(B, C, A, ensure_modulo)
 
     def double_modp(
         self, A: VariableType, C: VariableType, ensure_modulo=False
