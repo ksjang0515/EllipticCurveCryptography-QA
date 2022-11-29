@@ -7,8 +7,8 @@ from dimod.vartypes import Vartype
 from dimod import ExactSolver
 from dimod.sampleset import SampleView
 
-from utilities import number_to_binary
-from bit import Bit
+from src.utilities import number_to_binary
+from src.bit import Bit
 
 
 
@@ -25,10 +25,6 @@ because dimod removes the variable when using fix_variable"""
 
 class Controller:
     def __init__(self) -> None:
-        self.api_key = os.getenv("API_TOKEN")
-        if not self.api_key:
-            warnings.warn("api key was not found")
-
         self.bqm = BinaryQuadraticModel(Vartype.BINARY)
 
         self.bit_cnt = 0

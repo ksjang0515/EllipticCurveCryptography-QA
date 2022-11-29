@@ -1,5 +1,5 @@
-from controller import Controller, VariableType, ConstantType
-from utilities import number_to_binary
+from src.controller import Controller, VariableType, ConstantType
+from src.utilities import number_to_binary
 
 
 class EccController(Controller):
