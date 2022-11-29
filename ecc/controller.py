@@ -1,14 +1,14 @@
 from typing import Union
 import warnings
 
+from dwave.system import DWaveSampler, EmbeddingComposite
 from dimod.binary import BinaryQuadraticModel
 from dimod.vartypes import Vartype
 from dimod import ExactSolver
-from dimod.sampleset import SampleView
+from dimod.sampleset import SampleView, SampleSet
 
 from ecc.utilities import number_to_binary
 from ecc.bit import Bit
-
 
 
 """TODO - Create type for single bit
@@ -30,6 +30,30 @@ class Controller:
         self.variables: dict[str, list[Bit]] = {}
         self.constants: dict[str, int] = {}
 
+        self.dwave_sampler = None
+        self.embedding_sampler = None
+
+    def get_sampler(self):
+        self.dwave_sampler = DWaveSampler()
+        print("QPU {} was selected.".format(self.dwave_sampler.solver.name))
+
+        self.embedding_sampler = EmbeddingComposite(self.dwave_sampler)
+
+    def run_DWaveSampler(self, num_reads=100, label='controller') -> SampleSet:
+        if not self.embedding_sampler:
+            self.get_sampler()
+
+        solution = self.embedding_sampler.sample(
+            self.bqm, num_reads=num_reads, label=label)
+
+        return solution
+
+    def run_ExactSolver(self) -> SampleSet:
+        solver = ExactSolver()
+        solution = solver.sample(self.bqm)
+
+        return solution
+
     def create_variable(self, name: str, length: int) -> list[Bit]:
         if self.exists_variable(name):
             raise ValueError("Variable already exists")
@@ -50,7 +74,8 @@ class Controller:
         return False
 
     def check_VariableType(self, variable: VariableType) -> list[Bit]:
-        var = self.get_variable(variable) if isinstance(variable, str) else variable
+        var = self.get_variable(variable) if isinstance(
+            variable, str) else variable
         return var
 
     def check_ConstantType(self, constant: ConstantType, length=None) -> list[int]:
@@ -61,7 +86,8 @@ class Controller:
         )
 
         if length and len(const) != length:
-            raise ValueError("length of given constant is not same as given length")
+            raise ValueError(
+                "length of given constant is not same as given length")
 
         if not len(const):
             raise ValueError("length of constant is 0")
@@ -81,12 +107,6 @@ class Controller:
         zero = self.get_bit()
         self.zero_gate(zero)
         return zero
-
-    def run_ExactSolver(self):
-        solver = ExactSolver()
-        solution = solver.sample(self.bqm)
-
-        return solution
 
     def extract_variable(self, sample: SampleView, variable: VariableType) -> list[int]:
         """TODO - Add type for parameter sample, dimod.sampleset.Sample"""
@@ -264,7 +284,8 @@ class Controller:
         if len(var1) == len(var2) == len(out):
             pass
         else:
-            raise ValueError("length of variable1, variable2, output should be same")
+            raise ValueError(
+                "length of variable1, variable2, output should be same")
 
         for i in range(len(var1)):
             self.ctrl_select(var1[i], var2[i], ctrl, out[i])
@@ -357,7 +378,8 @@ class Controller:
         requires less bit if constant is power of 2, but if constant is odd number
         this requires more bits than using add method because xor uses one ancilla bit"""
 
-        warnings.warn("add_const method is less efficient if constant is odd number")
+        warnings.warn(
+            "add_const method is less efficient if constant is odd number")
 
         var = self.check_VariableType(variable)
         const = constant
@@ -432,7 +454,8 @@ class Controller:
         out = self.check_VariableType(output)
 
         if not (len(out) == len(var1) == len(var2)):
-            raise ValueError("variable1, variable2, output length must be same")
+            raise ValueError(
+                "variable1, variable2, output length must be same")
 
         var_ = [*var1, underflow]
 

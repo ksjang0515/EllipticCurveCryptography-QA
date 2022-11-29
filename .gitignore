@@ -10,9 +10,8 @@ data/
 !*.py
 !*.ipynb
 
-ecc.find_qubo.py
-# test.ipynb
-# test.py
+test.ipynb
+test.py
 
 
 # Byte-compiled / optimized / DLL files
