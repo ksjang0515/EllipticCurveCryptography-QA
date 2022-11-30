@@ -1,16 +1,18 @@
-Elliptic Curve Cryptography implementation on Dwave's Quantum Annealer
+# Elliptic Curve Cryptography Implementation using Dwave's Ocean SDK
 
-ECC Point multiplication, [Double-and-add](https://en.wikipedia.org/wiki/Elliptic_curve_point_multiplication#Double-and-add) method comparison
+### ECC Point multiplication, [Double-and-add](https://en.wikipedia.org/wiki/Elliptic_curve_point_multiplication#Double-and-add) method comparison
 
-1. index decreasing
+1. Index Decreasing
 
    requires doubling and addition
 
-2. index increasing
+2. Index Increasing
 
    doubles of G can be precomputed, reducing the number of operations
 
    by subtracting G at the last step, point at infinity(starting point) can be replaced by G
+
+---
 
 TODO
 
