@@ -1,4 +1,4 @@
-from ecc.controller import Controller, VariableType, ConstantType
+from ecc.base_controller import Controller, VariableType, ConstantType
 from ecc.utilities import number_to_binary
 
 
