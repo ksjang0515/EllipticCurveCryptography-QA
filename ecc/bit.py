@@ -14,6 +14,6 @@ class Bit:
     def index(self, value) -> None:
         self._index = value
         self.changed = True
- 
+
     def __repr__(self):
         return self._index

@@ -29,7 +29,8 @@ class EccController(Controller):
         self.set_variable_constant(p, self.P_CONST)
 
     def modulo_p(self, A: VariableType, R: VariableType, ensure_modulo=False):
-        """calculates a = m*P + r
+        """A mod p = R mod p
+        calculates A = m*P + R
         if ensure_modulo is False result r could be larger than P"""
 
         a = self.check_VariableType(A)
@@ -86,7 +87,8 @@ class EccController(Controller):
             raise ValueError("Length does not match")
 
         if len(b) > self.length:
-            raise ValueError("length of B is too long and performance is not checked")
+            raise ValueError(
+                "length of B is too long and performance is not checked")
 
         ancilla_add = self.get_bits(self.length + 1)
         ancilla_b = self.get_bits(len(b))
@@ -284,7 +286,8 @@ class EccController(Controller):
 
         lambda_mult = self.get_bits(self.length)
         self.mult_modp(x1_sub, lambda_, lambda_mult)  # lambda *(x1-x3)
-        self.sub_modp(lambda_mult, y1, y3, ensure_modulo)  # y3 = lambda(x1-x3) -y1
+        # y3 = lambda(x1-x3) -y1
+        self.sub_modp(lambda_mult, y1, y3, ensure_modulo)
 
     def ecc_double(
         self,
@@ -294,7 +297,7 @@ class EccController(Controller):
         Y3: VariableType,
         ensure_modulo=False,
     ) -> None:
-        """2*(x1, y1) = (x3, y3)"""
+        """(X3, Y3) = 2*(X1, Y1)"""
 
         x1 = self.check_VariableType(X1)
         y1 = self.check_VariableType(Y1)
@@ -329,7 +332,8 @@ class EccController(Controller):
         x1_dbl = self.get_bits(self.length)
         self.double_modp(x1, x1_dbl)  # 2*x1
 
-        self.sub_modp(lambda_squ, x1_dbl, x3, ensure_modulo)  # x3 = lambda^2 - 2*x1
+        # x3 = lambda^2 - 2*x1
+        self.sub_modp(lambda_squ, x1_dbl, x3, ensure_modulo)
 
         # get y
         x1_sub = self.get_bits(self.length)
@@ -338,7 +342,8 @@ class EccController(Controller):
         lambda_mult = self.get_bits(self.length)
         self.mult_modp(lambda_, x1_sub, lambda_mult)  # lambda *(x1-x3)
 
-        self.sub_modp(lambda_mult, y1, y3, ensure_modulo)  # y3 = lambda *(x1-x3) - y1
+        # y3 = lambda *(x1-x3) - y1
+        self.sub_modp(lambda_mult, y1, y3, ensure_modulo)
 
     def ecc_multiply(
         self,
@@ -348,6 +353,7 @@ class EccController(Controller):
         X_OUT: VariableType,
         Y_OUT: VariableType,
     ):
+        """(X_OUT, Y_OUT) = KEY * (X_BASE, Y_BASE)"""
         x_out = self.check_VariableType(X_OUT)
         y_out = self.check_VariableType(Y_OUT)
         key = self.check_VariableType(KEY)
@@ -367,7 +373,8 @@ class EccController(Controller):
             # ecc add
             ancilla_add_x = self.get_bits(self.length)
             ancilla_add_y = self.get_bits(self.length)
-            self.ecc_add(pre_x, pre_y, x_base, y_base, ancilla_add_x, ancilla_add_y)
+            self.ecc_add(pre_x, pre_y, x_base, y_base,
+                         ancilla_add_x, ancilla_add_y)
 
             ctrl_x = self.get_bits(self.length)
             ctrl_y = self.get_bits(self.length)
