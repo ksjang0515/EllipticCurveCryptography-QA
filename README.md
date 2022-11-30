@@ -16,6 +16,6 @@
 
 TODO
 
-- [ ] ecc_multiply, Implement subtraction at last step
+- [x] ecc_multiply, Implement subtraction at last step
 - [ ] extract_variable, Add type for parameter sample, dimod.sampleset.Sample
 - [ ] add_no_overflow, remove carry in last operation`
