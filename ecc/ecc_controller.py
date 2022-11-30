@@ -221,7 +221,7 @@ class EccController(Controller):
         Y3: VariableType,
         ensure_modulo=False,
     ) -> None:
-        """(x1, y1) + (x2, y2) = (x3, y3)"""
+        """(X1, Y1) + (X2, Y2) = (X3, Y3)"""
 
         x1 = self.check_VariableType(X1)
         y1 = self.check_VariableType(Y1)
@@ -317,10 +317,14 @@ class EccController(Controller):
             pre_y = new_y
 
         # subtract G
+        """(X1, Y1) - (X2, Y2) = (X3, Y3) => (X2, Y2) + (X3, Y3) = (X1, Y1)"""
+        new_x = self.get_bits(self.length)
+        new_y = self.get_bits(self.length)
+        self.ecc_add(new_x, new_y, x_base, y_base, pre_x, pre_y)
 
         for i in range(self.length):
-            x_out[i].index = pre_x[i].index
-            y_out[i].index = pre_y[i].index
+            x_out[i].index = new_x[i].index
+            y_out[i].index = new_y[i].index
 
         self.set_variable_constant(x_base, G[0])
         self.set_variable_constant(y_base, G[1])
