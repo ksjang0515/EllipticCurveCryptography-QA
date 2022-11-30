@@ -39,7 +39,7 @@ class Controller:
 
         self.embedding_sampler = EmbeddingComposite(self.dwave_sampler)
 
-    def run_DWaveSampler(self, num_reads=100, label='controller') -> SampleSet:
+    def run_DWaveSampler(self, num_reads: int = 100, label: str = 'controller') -> SampleSet:
         if not self.embedding_sampler:
             self.get_sampler()
 
@@ -95,21 +95,24 @@ class Controller:
         return const
 
     def get_bit(self) -> Bit:
+        """create and returns a new Bit"""
         bit = Bit(self.bit_cnt)
         self.bit_cnt += 1
         return bit
 
     def get_bits(self, num: int) -> list[Bit]:
+        """create and returns list of new Bits"""
         bits = [self.get_bit() for _ in range(num)]
         return bits
 
     def get_zero_bit(self) -> Bit:
+        """create a new bit and add bias to zero"""
         zero = self.get_bit()
         self.zero_gate(zero)
         return zero
 
     def extract_variable(self, sample: SampleView, variable: VariableType) -> list[int]:
-        """TODO - Add type for parameter sample, dimod.sampleset.Sample"""
+        """extract value of variable in sample"""
         var = self.check_VariableType(variable)
 
         result = [None for _ in var]
@@ -197,7 +200,7 @@ class Controller:
         self._add_quadratic(sum_, carry, 4)
 
     def zero_gate(self, in0: Bit) -> None:
-        """zero gate, make bit to result in zero"""
+        """add bias toward zero"""
         self._add_variable(in0, 1)
 
     def not_gate(self, in0: Bit, out: Bit) -> None:
@@ -349,7 +352,6 @@ class Controller:
         self, A: VariableType, B: VariableType, C: VariableType
     ) -> None:
         """C = A + B (no last carry)"""
-        """TODO - remove carry in last operation"""
         a = self.check_VariableType(A)
         b = self.check_VariableType(B)
         c = self.check_VariableType(C)
@@ -382,9 +384,8 @@ class Controller:
     def add_const(
         self, A: VariableType, B: ConstantType, C: VariableType
     ) -> None:
-        """C = A + B"""
-
-        """requires less bit if B is power of 2, but if B is odd number
+        """C = A + B
+        requires less bit if B is power of 2, but if B is odd number
         this requires more bits than using add method because xor uses one ancilla bit"""
 
         warnings.warn(
@@ -514,7 +515,8 @@ class Controller:
     def multiply_const(
         self, A: VariableType, B: ConstantType, C: VariableType
     ) -> None:
-        """Unlike add_const method, multiply_const requires less bits because this doesn't use any xor_gate"""
+        """C = A * B
+        Unlike add_const method, multiply_const requires less bits because this doesn't use any xor_gate"""
         a = self.check_VariableType(A)
         b = self.check_ConstantType(B)
         c = self.check_VariableType(C)
@@ -560,6 +562,7 @@ class Controller:
             c[i].index = self.get_zero_bit().index
 
     def square(self, A: VariableType, C: VariableType) -> None:
+        """C = A^2"""
         def ctrl_skip_var(var, index, out):
             for i in range(len(var)):
                 if i == index:

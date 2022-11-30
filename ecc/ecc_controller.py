@@ -29,9 +29,8 @@ class EccController(Controller):
         self.set_variable_constant(p, self.P_CONST)
 
     def modulo_p(self, A: VariableType, R: VariableType, ensure_modulo=False):
-        """A mod p = R mod p
-        calculates A = m*P + R
-        if ensure_modulo is False result r could be larger than P"""
+        """R = A mod p
+        calculates A = m*P + R"""
 
         a = self.check_VariableType(A)
         r = self.check_VariableType(R)
