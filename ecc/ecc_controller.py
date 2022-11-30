@@ -187,24 +187,6 @@ class EccController(Controller):
         """alias of mult_int_modp"""
         self.mult_inv_modp(A, C, ensure_modulo)
 
-    # def div_modp(
-    #     self, A: VariableType, B: VariableType, C: VariableType, ensure_modulo=False
-    # ) -> None:
-    #     """C = (A/B) mod p = (A*(B^-1 mod p)) mod p"""
-    #     a = self.check_VariableType(A)
-    #     b = self.check_VariableType(B)
-    #     c = self.check_VariableType(C)
-
-    #     if len(a) == len(b) == len(c) == self.length:
-    #         pass
-    #     else:
-    #         raise ValueError("Length does not match")
-
-    #     b_inv = self.get_bits(self.length)
-    #     self.mult_inv_modp(b, b_inv)
-
-    #     self.mult_modp(a, b_inv, c, ensure_modulo)
-
     def div_modp(
         self, A: VariableType, B: VariableType, C: VariableType, ensure_modulo=False
     ) -> None:
@@ -288,66 +270,10 @@ class EccController(Controller):
         # y3 = lambda(x1-x3) -y1
         self.sub_modp(lambda_mult, y1, y3, ensure_modulo)
 
-    def ecc_double(
-        self,
-        X1: VariableType,
-        Y1: VariableType,
-        X3: VariableType,
-        Y3: VariableType,
-        ensure_modulo=False,
-    ) -> None:
-        """(X3, Y3) = 2*(X1, Y1)"""
-
-        x1 = self.check_VariableType(X1)
-        y1 = self.check_VariableType(Y1)
-        x3 = self.check_VariableType(X3)
-        y3 = self.check_VariableType(Y3)
-
-        if len(x1) == len(y1) == len(x3) == len(y3) == self.length:
-            pass
-        else:
-            raise ValueError("Length does not match")
-
-        # get lambda
-        x1_squ = self.get_bits(self.length)
-        self.square_modp(x1, x1_squ)  # x1^2
-
-        x1_squ_3 = self.get_bits(self.length)
-        self.mult_const_modp(x1_squ, 3, x1_squ_3)  # 3*(x1^2)
-
-        add_a = self.get_bits(self.length)
-        self.add_const_modp(x1_squ_3, self.a, add_a)  # 3*(x1^2) +a
-
-        y1_2 = self.get_bits(self.length)
-        self.mult_const_modp(y1, 2, y1_2)  # 2*y1
-
-        lambda_ = self.get_bits(self.length)
-        self.div_modp(add_a, y1_2, lambda_)  # lambda = (3*(x1^2) +a) / (2*y1)
-
-        # get x
-        lambda_squ = self.get_bits(self.length)
-        self.square_modp(lambda_, lambda_squ)  # lambda^2
-
-        x1_dbl = self.get_bits(self.length)
-        self.double_modp(x1, x1_dbl)  # 2*x1
-
-        # x3 = lambda^2 - 2*x1
-        self.sub_modp(lambda_squ, x1_dbl, x3, ensure_modulo)
-
-        # get y
-        x1_sub = self.get_bits(self.length)
-        self.sub_modp(x1, x3, x1_sub)  # x1-x3
-
-        lambda_mult = self.get_bits(self.length)
-        self.mult_modp(lambda_, x1_sub, lambda_mult)  # lambda *(x1-x3)
-
-        # y3 = lambda *(x1-x3) - y1
-        self.sub_modp(lambda_mult, y1, y3, ensure_modulo)
-
     def ecc_multiply(
         self,
-        X_BASE: ConstantType,
-        Y_BASE: ConstantType,
+        G: tuple[int, int],
+        G_DOUBLES: list[tuple[int, int]],
         KEY: VariableType,
         X_OUT: VariableType,
         Y_OUT: VariableType,
@@ -357,7 +283,7 @@ class EccController(Controller):
         y_out = self.check_VariableType(Y_OUT)
         key = self.check_VariableType(KEY)
 
-        if len(x_out) == len(y_out) == len(key) == self.length:
+        if len(G_DOUBLES) == len(x_out) == len(y_out) == len(key) == self.length:
             pass
         else:
             raise ValueError("Length does not match")
@@ -370,26 +296,31 @@ class EccController(Controller):
 
         for i in range(self.length):
             # ecc add
+            ancilla_G_x = self.get_bits(self.length)
+            ancilla_G_y = self.get_bits(self.length)
+
             ancilla_add_x = self.get_bits(self.length)
             ancilla_add_y = self.get_bits(self.length)
-            self.ecc_add(pre_x, pre_y, x_base, y_base,
+            self.ecc_add(pre_x, pre_y, ancilla_G_x, ancilla_G_y,
                          ancilla_add_x, ancilla_add_y)
 
-            ctrl_x = self.get_bits(self.length)
-            ctrl_y = self.get_bits(self.length)
-            self.ctrl_select_variable(pre_x, ancilla_add_x, key[i], ctrl_x)
-            self.ctrl_select_variable(pre_y, ancilla_add_y, key[i], ctrl_y)
+            self.set_variable_constant(ancilla_G_x, G_DOUBLES[i][0])
+            self.set_variable_constant(ancilla_G_y, G_DOUBLES[i][1])
 
+            # add if ctrl
             new_x = self.get_bits(self.length)
             new_y = self.get_bits(self.length)
-            self.ecc_double(ctrl_x, ctrl_y, new_x, new_y)
+            self.ctrl_select_variable(pre_x, ancilla_add_x, key[i], new_x)
+            self.ctrl_select_variable(pre_y, ancilla_add_y, key[i], new_y)
 
             pre_x = new_x
             pre_y = new_y
+
+        # subtract G
 
         for i in range(self.length):
             x_out[i].index = pre_x[i].index
             y_out[i].index = pre_y[i].index
 
-        self.set_variable_constant(x_base, X_BASE)
-        self.set_variable_constant(y_base, Y_BASE)
+        self.set_variable_constant(x_base, G[0])
+        self.set_variable_constant(y_base, G[1])
