@@ -337,7 +337,7 @@ class EccController(Controller):
         # subtract G
         new_x = self.get_bits(self.length)
         new_y = self.get_bits(self.length)
-        self.ecc_sub(x_base, y_base, pre_x, pre_y, new_x, new_y)
+        self.ecc_sub(pre_x, pre_y, x_base, y_base, new_x, new_y)
 
         for i in range(self.length):
             x_out[i].index = new_x[i].index
