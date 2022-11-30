@@ -270,6 +270,24 @@ class EccController(Controller):
         # y3 = lambda(x1-x3) -y1
         self.sub_modp(lambda_mult, y1, y3, ensure_modulo)
 
+    def ecc_sub(
+        self,
+        X1: VariableType,
+        Y1: VariableType,
+        X2: VariableType,
+        Y2: VariableType,
+        X3: VariableType,
+        Y3: VariableType,
+        ensure_modulo=False,
+    ) -> None:
+        """(X3, Y3) = (X1, Y1) - (X2, Y2) => (X1, Y1) = (X2, Y2) + (X3, Y3)"""
+
+        self.ecc_add(X2, Y2, X3, Y3, X1, Y1)
+
+        if ensure_modulo:
+            self.ensure_modulo(X3)
+            self.ensure_modulo(Y3)
+
     def ecc_multiply(
         self,
         G: tuple[int, int],
@@ -317,10 +335,9 @@ class EccController(Controller):
             pre_y = new_y
 
         # subtract G
-        """(X1, Y1) - (X2, Y2) = (X3, Y3) => (X2, Y2) + (X3, Y3) = (X1, Y1)"""
         new_x = self.get_bits(self.length)
         new_y = self.get_bits(self.length)
-        self.ecc_add(new_x, new_y, x_base, y_base, pre_x, pre_y)
+        self.ecc_sub(x_base, y_base, pre_x, pre_y, new_x, new_y)
 
         for i in range(self.length):
             x_out[i].index = new_x[i].index
