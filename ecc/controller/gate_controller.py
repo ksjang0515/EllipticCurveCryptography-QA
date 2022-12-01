@@ -2,7 +2,7 @@ from ecc.controller.base_controller import BaseController
 from ecc.types import VariableType, ConstantType, Bit
 
 
-class BoolController(BaseController):
+class GateController(BaseController):
     def __init__(self) -> None:
         super().__init__()
 

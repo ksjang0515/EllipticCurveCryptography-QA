@@ -1,10 +1,10 @@
 import warnings
 
-from ecc.controller.boolean_controller import BoolController
+from ecc.controller.gate_controller import GateController
 from ecc.types import VariableType, ConstantType, Bit
 
 
-class ArithmeticController(BoolController):
+class ArithmeticController(GateController):
     def __init__(self) -> None:
         super().__init__()
 
