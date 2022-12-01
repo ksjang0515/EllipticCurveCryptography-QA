@@ -18,4 +18,6 @@ TODO
 
 - [x] ecc_multiply, Implement subtraction at last step
 - [ ] extract_variable, Add type for parameter sample, dimod.sampleset.Sample
-- [ ] add_no_overflow, remove carry in last operation`
+- [ ] add_no_overflow, remove carry in last operation
+- [ ] Create a method for getting graph of bqm
+- [ ] Make sure set_variable is done at the end, because dimod removes the variable when using fix_variable
