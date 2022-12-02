@@ -6,12 +6,6 @@ class GateController(BaseController):
     def __init__(self) -> None:
         super().__init__()
 
-    def get_zero_bit(self) -> Bit:
-        """create a new bit and add bias to zero"""
-        zero = self.get_bit()
-        self.zero_gate(zero)
-        return zero
-
     def halfadder_gate(self, in0: Bit, in1: Bit, sum_: Bit, carry: Bit) -> None:
         """halfadder gate"""
         # add the variables (in order)
@@ -55,6 +49,12 @@ class GateController(BaseController):
         """add bias toward zero"""
         self._add_variable(in0, 1)
 
+    def get_zero_bit(self) -> Bit:
+        """create a new bit and add bias to zero"""
+        zero = self.get_bit()
+        self.zero_gate(zero)
+        return zero
+
     def not_gate(self, in0: Bit, out: Bit) -> None:
         """not gate"""
         # add the variables (in order)
@@ -63,6 +63,8 @@ class GateController(BaseController):
 
         # add the quadratic biases
         self._add_quadratic(in0, out, 2)
+
+        self._add_offset(1)
 
     def and_gate(self, in0: Bit, in1: Bit, out: Bit) -> None:
         """and gate"""
