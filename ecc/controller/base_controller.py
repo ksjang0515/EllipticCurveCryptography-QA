@@ -1,5 +1,6 @@
 from typing import Union
 import warnings
+import numpy as np
 
 from dwave.system import DWaveSampler, EmbeddingComposite
 from dimod.binary import BinaryQuadraticModel
@@ -94,6 +95,22 @@ class BaseController:
         bits = [self.get_bit() for _ in range(num)]
         return bits
 
+    def extract_bit(self, sample: SampleView, bit: Bit) -> int:
+        result = None
+        try:
+            result = (
+                sample[bit.index]
+                if isinstance(sample, SampleView)
+                else sample.sample[bit.index]
+            )
+        except Exception as e:
+            if c := self.constants.get(bit.index):
+                result = c
+            else:
+                warnings.warn(f"Value for {bit.index} was not found")
+
+        return result
+
     def extract_variable(self, sample: SampleView, variable: VariableType) -> list[int]:
         """extract value of variable in sample"""
         var = self.check_VariableType(variable)
@@ -142,3 +159,6 @@ class BaseController:
 
     def _flip_variable(self, bit: Bit) -> None:
         self.bqm.flip_variable(bit.index)
+
+    def _add_offset(self, v: int):
+        self.bqm.offset += v
