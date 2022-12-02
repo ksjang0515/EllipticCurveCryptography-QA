@@ -104,7 +104,7 @@ class BaseController:
                 else sample.sample[bit.index]
             )
         except Exception as e:
-            if c := self.constants.get(bit.index):
+            if (c := self.constants.get(bit.index)) != None:
                 result = c
             else:
                 warnings.warn(f"Value for {bit.index} was not found")
