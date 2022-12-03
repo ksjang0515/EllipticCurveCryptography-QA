@@ -28,20 +28,29 @@ class ArithmeticController(GateController):
         carry = self.get_bit()
         self.halfadder_gate(a[0], b[0], c[0], carry)
 
-        for i in range(1, len(b)):
+        for i in range(1, len(b)-1):
             pre_carry = carry
             carry = self.get_bit()
             self.fulladder_gate(a[i], b[i], pre_carry, c[i], carry)
 
+        i = len(b)-1
+        pre_carry = carry
         if len(a) == len(b):
-            c[-1].index = carry.index
+            carry = c[i+1]
+            self.fulladder_gate(a[i], b[i], pre_carry, c[i], carry)
             return
+        carry = self.get_bit()
+        self.fulladder_gate(a[i], b[i], pre_carry, c[i], carry)
 
-        for i in range(len(b), len(a)):
+        for i in range(len(b), len(a)-1):
             pre_carry = carry
             carry = self.get_bit()
             self.halfadder_gate(a[i], pre_carry, c[i], carry)
-        c[-1].index = carry.index
+
+        i = len(a)-1
+        pre_carry = carry
+        carry = c[i+1]
+        self.halfadder_gate(a[i], pre_carry, c[i], carry)
 
     def add_no_overflow(
         self, A: VariableType, B: VariableType, C: VariableType
@@ -54,98 +63,20 @@ class ArithmeticController(GateController):
         if not len(c) == max(len(a), len(b)):
             raise ValueError("out Variable length is too short")
 
-        if len(a) < len(b):
-            # swap so var1 is longer than var2
-            temp = a
-            a = b
-            b = temp
+        ancilla = self.get_bit()
+        c_ = [*c, ancilla]
 
-        carry = self.get_bit()
-        self.halfadder_gate(a[0], b[0], c[0], carry)
-
-        for i in range(1, len(b)):
-            pre_carry = carry
-            carry = self.get_bit()
-            self.fulladder_gate(a[i], b[i], pre_carry, c[i], carry)
-
-        if len(a) == len(b):
-            return
-
-        for i in range(len(b), len(a)):
-            pre_carry = carry
-            carry = self.get_bit()
-            self.halfadder_gate(a[i], pre_carry, c[i], carry)
+        self.add(a, b, c_)
 
     def add_const(
         self, A: VariableType, B: ConstantType, C: VariableType
     ) -> None:
-        """C = A + B
-        requires less bit if B is power of 2, but if B is odd number
-        this requires more bits than using add method because xor uses one ancilla bit"""
-
-        warnings.warn(
-            "add_const method is less efficient than plain add method if constant is odd number")
-
-        a = self.check_VariableType(A)
+        """C = A + B"""
         b = self.check_ConstantType(B)
-        c = self.check_VariableType(C)
 
-        if len(a) < len(b):
-            raise ValueError("constant cannot be longer than variable")
-
-        if not len(c) == len(a) + 1:
-            raise ValueError("out Variable length is too short")
-
-        carry = None
-        for i in range(len(b)):
-            if carry:
-                pre_carry = carry
-                carry = self.get_bit()
-                sum_ = self.get_bit()
-
-                if b[i] == 1:
-                    self.xnor_gate(a[i], pre_carry, sum_)
-                    self.or_gate(a[i], pre_carry, carry)
-
-                else:
-                    self.xor_gate(a[i], pre_carry, sum_)
-                    self.and_gate(a[i], pre_carry, carry)
-            else:
-                if b[i] == 1:
-                    sum_ = self.get_bit()
-                    carry = a[i]
-
-                    self.not_gate(a[i], sum_)
-
-                else:
-                    sum_ = a[i]
-
-            c[i].index = sum_.index
-
-        if len(a) == len(carry):
-            c[-1].index = carry.index
-            return
-
-        if not carry:
-            for i in range(len(b), len(a)):
-                c[i].index = a[i].index
-
-            zero = self.get_bit()
-            self.zero_gate(zero)
-            c[-1].index = zero.index
-
-            return
-
-        for i in range(len(b), len(a)):
-            pre_carry = carry
-            carry = self.get_bit()
-            sum_ = self.get_bit()
-
-            self.halfadder_gate(a[i], pre_carry, sum_, carry)
-
-            c[i].index = sum_.index
-
-        c[-1].index = carry.index
+        b_ = self.get_bits(len(b))
+        self.add(A, b_, C)
+        self.set_variable_constant(b_, b)
 
     def subtract(
         self,
