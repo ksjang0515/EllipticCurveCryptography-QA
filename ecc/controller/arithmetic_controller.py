@@ -68,20 +68,13 @@ class ArithmeticController(GateController):
 
         self.add(a, b, c_)
 
-    def add_const_simple(
-        self, A: VariableType, B: ConstantType, C: VariableType
-    ) -> None:
-        """C = A + B"""
-        b = self.check_ConstantType(B)
-
-        b_ = self.get_bits(len(b))
-        self.add(A, b_, C)
-        self.set_variable_constant(b_, b)
-
     def add_const(
         self, A: VariableType, B: ConstantType, C: VariableType
     ) -> None:
-        """C = A + B(constant)"""
+        """C = A + B(constant)
+        C might change"""
+
+        warnings.warn("add_const, C might change")
 
         a = self.check_VariableType(A)
         b = self.check_ConstantType(B)
@@ -180,26 +173,29 @@ class ArithmeticController(GateController):
         ):
             raise ValueError("out Variable length is too short")
 
-        ctrl_ancilla_var = self.get_bits(var1_length)
+        ancilla = self.get_bits(var1_length-1)
+        ctrl_ancilla_var = [c[0], *ancilla]
         self.ctrl_var(b[0], a, ctrl_ancilla_var)
 
         pre_add_ancilla_var = ctrl_ancilla_var[1:]  # n-1
-        c[0].index = ctrl_ancilla_var[0].index
 
-        for i in range(1, var2_length):
+        for i in range(1, var2_length-1):
             ctrl_ancilla_var = self.get_bits(var1_length)  # n
             self.ctrl_var(b[i], a, ctrl_ancilla_var)
 
             # n+1 (n+n => n+1 or n-1+n => n+1)
-            add_ancilla_var = self.get_bits(var1_length + 1)
+            ancilla = self.get_bits(var1_length)
+            add_ancilla_var = [c[i], *ancilla]
             self.add(pre_add_ancilla_var, ctrl_ancilla_var, add_ancilla_var)
 
             pre_add_ancilla_var = add_ancilla_var[1:]  # n
-            c[i].index = add_ancilla_var[0].index
 
-        # (n + n2) - n2 = n
-        for i in range(len(pre_add_ancilla_var)):
-            c[var2_length + i].index = pre_add_ancilla_var[i].index
+        i = var2_length-1
+        ctrl_ancilla_var = self.get_bits(var1_length)  # n
+        self.ctrl_var(b[i], a, ctrl_ancilla_var)
+
+        add_ancilla_var = c[i:]
+        self.add(pre_add_ancilla_var, ctrl_ancilla_var, add_ancilla_var)
 
     def multiply_const(
         self, A: VariableType, B: ConstantType, C: VariableType
