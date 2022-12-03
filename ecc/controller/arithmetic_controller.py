@@ -68,7 +68,7 @@ class ArithmeticController(GateController):
 
         self.add(a, b, c_)
 
-    def add_const(
+    def add_const_simple(
         self, A: VariableType, B: ConstantType, C: VariableType
     ) -> None:
         """C = A + B"""
@@ -77,6 +77,69 @@ class ArithmeticController(GateController):
         b_ = self.get_bits(len(b))
         self.add(A, b_, C)
         self.set_variable_constant(b_, b)
+
+    def add_const(
+        self, A: VariableType, B: ConstantType, C: VariableType
+    ) -> None:
+        """C = A + B(constant)"""
+
+        a = self.check_VariableType(A)
+        b = self.check_ConstantType(B)
+        c = self.check_VariableType(C)
+
+        if len(a) < len(b):
+            raise ValueError("constant cannot be longer than variable")
+
+        if not len(c) == len(a) + 1:
+            raise ValueError("out Variable length is too short")
+
+        carry = None
+        for i in range(len(b)):
+            if carry:
+                pre_carry = carry
+                carry = self.get_bit()
+                sum_ = self.get_bit()
+                ancilla = self.get_bit()
+
+                self.fulladder_gate(a[i], ancilla, pre_carry, sum_, carry)
+                self.set_bit_constant(ancilla, b[i])
+
+            else:
+                if b[i] == 1:
+                    sum_ = self.get_bit()
+                    carry = a[i]
+
+                    self.not_gate(a[i], sum_)
+
+                else:
+                    sum_ = a[i]
+
+            c[i].index = sum_.index
+
+        if len(a) == len(b):
+            c[-1].index = carry.index
+            return
+
+        if not carry:
+            for i in range(len(b), len(a)):
+                c[i].index = a[i].index
+
+            zero = self.get_bit()
+            self.zero_gate(zero)
+            c[-1].index = zero.index
+
+            return
+
+        for i in range(len(b), len(a)):
+            pre_carry = carry
+            carry = self.get_bit()
+            sum_ = self.get_bit()
+
+            self.halfadder_gate(a[i], pre_carry, sum_, carry)
+
+            c[i].index = sum_.index
+
+        c[-1].index = carry.index
 
     def subtract(
         self,
