@@ -79,6 +79,23 @@ class TestArithmeticController(base.Base):
 
         self.check_solution((c, C))
 
+    @parameterized.expand([(5, 7), (6, 3), (1, 3), (2, 7), (5, 1)])
+    def test_multiply_const(self, A, B):
+        C = A*B
+
+        a = self.controller.get_bits(3)
+        b = ecc.number_to_binary(B)
+        c_length = len(a) if len(b) == 1 else len(a) + len(b)
+        c = self.controller.get_bits(c_length)
+
+        self.controller.multiply_const(a, b, c)
+
+        self.check_change(a)
+
+        self.controller.set_variable_constant(a, A)
+
+        self.check_solution((c, C))
+
 
 if __name__ == "__main__":
     unittest.main()

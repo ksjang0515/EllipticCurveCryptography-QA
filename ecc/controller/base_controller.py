@@ -96,18 +96,17 @@ class BaseController:
         return bits
 
     def extract_bit(self, sample: SampleView, bit: Bit) -> int:
+        if not isinstance(sample, SampleView):
+            sample = sample.sample
+
         result = None
         try:
-            result = (
-                sample[bit.index]
-                if isinstance(sample, SampleView)
-                else sample.sample[bit.index]
-            )
+            result = sample[bit.index]
         except Exception as e:
             if (c := self.constants.get(bit.index)) != None:
                 result = c
-            else:
-                warnings.warn(f"Value for {bit.index} was not found")
+
+            warnings.warn(f"Value for {bit.index} was not found")
 
         return result
 
@@ -115,16 +114,15 @@ class BaseController:
         """extract value of variable in sample"""
         var = self.check_VariableType(variable)
 
+        if not isinstance(sample, SampleView):
+            sample = sample.sample
+
         result = [None for _ in var]
         for i in range(len(var)):
             try:
-                result[i] = (
-                    sample[var[i].index]
-                    if isinstance(sample, SampleView)
-                    else sample.sample[var[i].index]
-                )
+                result[i] = sample[var[i].index]
             except Exception as e:
-                if c := self.constants.get(var[i].index):
+                if (c := self.constants.get(var[i].index)) != None:
                     result[i] = c
                     continue
 
