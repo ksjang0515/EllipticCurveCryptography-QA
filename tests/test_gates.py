@@ -1,29 +1,13 @@
 import ecc
 import unittest
 from parameterized import parameterized
-from typing import Union
+
+from tests import base
 
 
-class TestGateController(unittest.TestCase):
+class TestGateController(base.Base):
     def setUp(self) -> None:
         self.controller = ecc.GateController()
-
-    def check_solution(self, *check_list: tuple[ecc.Bit, int]):
-        solution = self.controller.run_ExactSolver()
-        lowest = solution.lowest()
-
-        self.assertEqual(len(lowest), 1, "More than one lowest state")
-        self.assertEqual(lowest.record[0].energy, 0, "Energy is not zero")
-
-        sample = lowest.samples()[0]
-
-        for out_bit, expected in check_list:
-            result = self.controller.extract_bit(sample, out_bit)
-            self.assertEqual(result, expected, "Wrong result")
-
-    def check_change(self, *args):
-        for bit in args:
-            self.assertFalse(bit.changed, "Bit changed")
 
     @parameterized.expand([(0, 0, 0, 0), (0, 1, 1, 0), (1, 0, 1, 0), (1, 1, 0, 1)])
     def test_halfadder_gate(self, in0: int, in1: int, sum_: int, carry: int):
@@ -83,9 +67,7 @@ class TestGateController(unittest.TestCase):
 
     @parameterized.expand([(0, 0, 0), (0, 1, 0), (1, 0, 0), (1, 1, 1)])
     def test_and_gate(self, in0: int, in1: int, out: int):
-        a = self.controller.get_bit()
-        b = self.controller.get_bit()
-        c = self.controller.get_bit()
+        a, b, c = self.controller.get_bits(3)
 
         self.controller.and_gate(a, b, c)
 
@@ -157,6 +139,38 @@ class TestGateController(unittest.TestCase):
         self.controller.set_bit_constant(ctrl, control)
 
         self.check_solution((c, out))
+
+    @parameterized.expand([(2, 6, 1, 6)])
+    def test_ctrl_select_variable(self, A, B, control, C):
+        a = self.controller.get_bits(3)
+        b = self.controller.get_bits(3)
+        c = self.controller.get_bits(3)
+        ctrl = self.controller.get_bit()
+
+        self.controller.ctrl_select_variable(a, b, ctrl, c)
+
+        self.check_change(a, b, c, ctrl)
+
+        self.controller.set_variable_constant(a, A)
+        self.controller.set_variable_constant(b, B)
+        self.controller.set_bit_constant(ctrl, control)
+
+        self.check_solution((c, C))
+
+    @parameterized.expand([(1, 6, 6), (0, 6, 0)])
+    def test_ctrl_var(self, control, A, C):
+        a = self.controller.get_bits(3)
+        c = self.controller.get_bits(3)
+        ctrl = self.controller.get_bit()
+
+        self.controller.ctrl_var(ctrl, a, c)
+
+        self.check_change(a, c, ctrl)
+
+        self.controller.set_variable_constant(a, A)
+        self.controller.set_bit_constant(ctrl, control)
+
+        self.check_solution((c, C))
 
 
 if __name__ == "__main__":

@@ -135,34 +135,34 @@ class GateController(BaseController):
 
     def ctrl_select_variable(
         self,
-        variable1: VariableType,
-        variable2: VariableType,
+        A: VariableType,
+        B: VariableType,
         ctrl: Bit,
-        output: VariableType,
+        C: VariableType,
     ) -> None:
-        """variable1 if ctrl is 0 variable2 if ctrl is 1"""
-        var1 = self.check_VariableType(variable1)
-        var2 = self.check_VariableType(variable2)
-        out = self.check_VariableType(output)
+        """A if ctrl is 0 B if ctrl is 1"""
+        a = self.check_VariableType(A)
+        b = self.check_VariableType(B)
+        out = self.check_VariableType(C)
 
-        if len(var1) == len(var2) == len(out):
+        if len(a) == len(b) == len(out):
             pass
         else:
             raise ValueError(
                 "length of variable1, variable2, output should be same")
 
-        for i in range(len(var1)):
-            self.ctrl_select(var1[i], var2[i], ctrl, out[i])
+        for i in range(len(a)):
+            self.ctrl_select(a[i], b[i], ctrl, out[i])
 
     def ctrl_var(
-        self, control: Bit, variable: VariableType, output: VariableType
+        self, ctrl: Bit, A: VariableType, C: VariableType
     ) -> None:
         """Returns var if control is 1, else returns 0"""
-        var = self.check_VariableType(variable)
-        out = self.check_VariableType(output)
+        a = self.check_VariableType(A)
+        c = self.check_VariableType(C)
 
-        if len(var) != len(out):
+        if len(a) != len(c):
             raise ValueError("var and out Variable length is not same")
 
-        for i in range(len(var)):
-            self.and_gate(var[i], control, out[i])
+        for i in range(len(a)):
+            self.and_gate(a[i], ctrl, c[i])

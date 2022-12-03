@@ -151,6 +151,9 @@ class BaseController:
 
         self.constants[bit_name] = value
 
+    def get_number_of_bits(self) -> int:
+        return len(self.bqm.linear)
+
     def _add_variable(self, bit: Bit, bias: int = 0) -> None:
         self.bqm.add_variable(bit.index, bias)
 
