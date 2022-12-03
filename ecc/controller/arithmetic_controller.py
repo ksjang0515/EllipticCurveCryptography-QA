@@ -162,36 +162,32 @@ class ArithmeticController(GateController):
         b = self.check_VariableType(B)
         c = self.check_VariableType(C)
 
-        var1_length = len(a)  # n
-        var2_length = len(b)  # n2
-        out_length = len(c)
+        a_length = len(a)  # n
+        b_length = len(b)  # n2
+        c_length = len(c)
 
-        if (
-            var1_length + var2_length != out_length
-            and var1_length * var2_length
-            != out_length  # case where one of variables' length is one
-        ):
+        if a_length + b_length != c_length and a_length * b_length != c_length:
             raise ValueError("out Variable length is too short")
 
-        ancilla = self.get_bits(var1_length-1)
+        ancilla = self.get_bits(a_length-1)
         ctrl_ancilla_var = [c[0], *ancilla]
         self.ctrl_var(b[0], a, ctrl_ancilla_var)
 
         pre_add_ancilla_var = ctrl_ancilla_var[1:]  # n-1
 
-        for i in range(1, var2_length-1):
-            ctrl_ancilla_var = self.get_bits(var1_length)  # n
+        for i in range(1, b_length-1):
+            ctrl_ancilla_var = self.get_bits(a_length)  # n
             self.ctrl_var(b[i], a, ctrl_ancilla_var)
 
             # n+1 (n+n => n+1 or n-1+n => n+1)
-            ancilla = self.get_bits(var1_length)
+            ancilla = self.get_bits(a_length)
             add_ancilla_var = [c[i], *ancilla]
             self.add(pre_add_ancilla_var, ctrl_ancilla_var, add_ancilla_var)
 
             pre_add_ancilla_var = add_ancilla_var[1:]  # n
 
-        i = var2_length-1
-        ctrl_ancilla_var = self.get_bits(var1_length)  # n
+        i = b_length-1
+        ctrl_ancilla_var = self.get_bits(a_length)  # n
         self.ctrl_var(b[i], a, ctrl_ancilla_var)
 
         add_ancilla_var = c[i:]
@@ -206,19 +202,17 @@ class ArithmeticController(GateController):
         b = self.check_ConstantType(B)
         c = self.check_VariableType(C)
 
-        var_length = len(a)
-        const_length = len(b)
+        a_length = len(a)
+        b_length = len(b)
 
-        if var_length + const_length != len(c) and var_length * const_length == len(
-            c
-        ):
+        if a_length + b_length != len(c) and a_length * b_length != len(c):
             raise ValueError("out Variable length is too short")
 
         pre_add_ancilla_var = []
-        for i in range(const_length):
+        for i in range(b_length):
             if pre_add_ancilla_var:
                 if b[i] == 1:
-                    add_ancilla_var = self.get_bits(var_length + 1)
+                    add_ancilla_var = self.get_bits(a_length + 1)
                     self.add(a, pre_add_ancilla_var, add_ancilla_var)
                     c[i].index = add_ancilla_var[0].index
                     pre_add_ancilla_var = add_ancilla_var[1:]
@@ -237,9 +231,9 @@ class ArithmeticController(GateController):
                     c[i].index = self.get_zero_bit().index
 
         for i in range(len(pre_add_ancilla_var)):
-            c[const_length + i].index = pre_add_ancilla_var[i].index
+            c[b_length + i].index = pre_add_ancilla_var[i].index
 
-        current = const_length + len(pre_add_ancilla_var)
+        current = b_length + len(pre_add_ancilla_var)
         if current == len(c):
             return
 
