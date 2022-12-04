@@ -21,7 +21,7 @@ class ModuloController(ArithmeticController):
         ancilla_sub = self.get_bits(self.length)
         underflow = self.get_one_bit()
 
-        self.subtract_const_simple(a, self.P_CONST, ancilla_sub, underflow)
+        self.subtract_const(a, self.P_CONST, ancilla_sub, underflow)
 
     def modulo_p(self, A: VariableType, R: VariableType, ensure_modulo=False):
         """R = A mod p

@@ -21,3 +21,14 @@ TODO
 - [ ] Make sure set_variable is done at the end, because dimod removes the variable when using fix_variable
 - [ ] no variable is left on test case (5, 1), test_arithmetic.py test_multiply_const
 - [ ] show current variable length for length related ValueErrors in Controller
+- [ ] remove zero_gate, one_gate, and set bit to constant
+- [ ] create flowchart to reduce number of bits used, ex) when using not_gate, if bit is set to constant use flow to set the other bit as well
+
+1. add_no_overflow, last carry to zero
+2.
+
+Warning
+
+1. When merging two bit, a and b, after b has been merged to a since id of a and b is different change in b will not affect a. Consider using merged bit structure or using a dictionary to map Bit's index to actual bit name
+
+Bit.index -> Map -> bit name ??? what happens when merging 3 bits

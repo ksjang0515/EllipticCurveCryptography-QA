@@ -1,6 +1,5 @@
 from typing import Union
 import warnings
-import numpy as np
 
 from dwave.system import DWaveSampler, EmbeddingComposite
 from dimod.binary import BinaryQuadraticModel
@@ -145,11 +144,12 @@ class BaseController:
         try:
             self.bqm.fix_variable(bit_name, value)
         except ValueError as e:
-            print(f"Warning - {e}")
+            pass
 
         self.constants[bit_name] = value
 
-    def get_shape(self) -> int:
+    @property
+    def shape(self) -> int:
         return self.bqm.shape
 
     def _add_variable(self, bit: Bit, bias: int = 0) -> None:
@@ -166,10 +166,15 @@ class BaseController:
 
     def merge_bit(self, bit1: Bit, bit2: Bit) -> None:
         """merge bit2 to bit1"""
+        try:
+            linear = self.bqm.get_linear(bit2.index)
+        except ValueError:
+            bit2.index = bit1.index
+            return
+
         for u, bias in self.bqm.iter_neighborhood(bit2.index):
             self.bqm.add_quadratic(bit1.index, u, bias)
 
-        linear = self.bqm.get_linear(bit2.index)
         self._add_variable(bit1, linear)
         self.bqm.remove_variable(bit2.index)
         bit2.index = bit1.index
