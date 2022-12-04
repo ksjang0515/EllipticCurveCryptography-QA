@@ -173,3 +173,14 @@ class BaseController:
         self._add_variable(bit2, linear)
         self.bqm.remove_variable(bit1.index)
         bit1.index = bit2.index
+
+    def merge_variable(self, variable1: VariableType, variable2: VariableType) -> None:
+        """merge variable1 to variable2"""
+        var1 = self.check_VariableType(variable1)
+        var2 = self.check_VariableType(variable2)
+
+        if len(var1) != len(var2):
+            raise ValueError('Length is not same')
+
+        for i in range(len(var1)):
+            self.merge_bit(var1[i], var2[i])
