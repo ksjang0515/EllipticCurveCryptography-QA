@@ -165,17 +165,17 @@ class BaseController:
         self.bqm.offset += v
 
     def merge_bit(self, bit1: Bit, bit2: Bit) -> None:
-        """merge bit1 to bit2"""
-        for u, bias in self.bqm.iter_neighborhood(bit1.index):
-            self.bqm.add_quadratic(bit2.index, u, bias)
+        """merge bit2 to bit1"""
+        for u, bias in self.bqm.iter_neighborhood(bit2.index):
+            self.bqm.add_quadratic(bit1.index, u, bias)
 
-        linear = self.bqm.get_linear(bit1.index)
-        self._add_variable(bit2, linear)
-        self.bqm.remove_variable(bit1.index)
-        bit1.index = bit2.index
+        linear = self.bqm.get_linear(bit2.index)
+        self._add_variable(bit1, linear)
+        self.bqm.remove_variable(bit2.index)
+        bit2.index = bit1.index
 
     def merge_variable(self, variable1: VariableType, variable2: VariableType) -> None:
-        """merge variable1 to variable2"""
+        """merge variable2 to variable1"""
         var1 = self.check_VariableType(variable1)
         var2 = self.check_VariableType(variable2)
 
