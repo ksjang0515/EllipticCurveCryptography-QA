@@ -52,6 +52,22 @@ class TestGateController(base.Base):
 
         self.check_solution((a, 0))
 
+    def test_one_gate(self):
+        a = self.controller.get_bit()
+
+        self.controller.one_gate(a)
+
+        self.check_change(a)
+
+        self.check_solution((a, 1))
+
+    def test_get_one_bit(self):
+        a = self.controller.get_one_bit()
+
+        self.check_change(a)
+
+        self.check_solution((a, 1))
+
     @parameterized.expand([(0, 1), (1, 0)])
     def test_not_gate(self, in0: int, out: int):
         a = self.controller.get_bit()

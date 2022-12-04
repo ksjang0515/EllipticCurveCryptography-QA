@@ -43,6 +43,22 @@ class TestArithmeticController(base.Base):
 
         self.check_solution((c, C))
 
+    @parameterized.expand([(3, 6, 3), (7, 3, 3), (3, 6, 2)])
+    def test_add_const_simple(self, A: int, B: int, a_length: int):
+        C = A+B
+
+        a = self.controller.get_bits(a_length)
+        b = ecc.number_to_binary(B)
+        c = self.controller.get_bits(max(a_length, len(b))+1)
+
+        self.controller.add_const_simple(a, b, c)
+
+        self.check_change(a, c)
+
+        self.controller.set_variable_constant(a, A)
+
+        self.check_solution((c, C))
+
     @parameterized.expand([(3, 4), (3, 3), (6, 4)])
     def test_subtract(self, A: int, B: int):
         C = A-B if A >= B else 2**3 + A - B
@@ -59,6 +75,43 @@ class TestArithmeticController(base.Base):
 
         self.controller.set_variable_constant(a, A)
         self.controller.set_variable_constant(b, B)
+
+        self.check_solution((c, C), (u, underflow))
+
+    # @parameterized.expand([(3, 4, 3), (3, 3, 3), (6, 4, 3)])
+    # def test_subtract_const(self, A: int, B: int, a_length: int):
+    #     C = A-B if A >= B else 2**3 + A - B
+    #     underflow = 1 if A < B else 0
+
+    #     a = self.controller.get_bits(a_length)
+    #     b = ecc.number_to_binary(B)
+    #     c = self.controller.get_bits(a_length)
+    #     u = self.controller.get_bit()
+
+    #     self.controller.subtract_const(a, b, c, u)
+
+    #     self.check_change(a)
+
+    #     self.controller.set_variable_constant(a, A)
+    #     self.controller.set_variable_constant(b, B)
+
+    #     self.check_solution((c, C), (u, underflow))
+
+    @parameterized.expand([(3, 4), (3, 3), (6, 4)])
+    def test_subtract_const_simple(self, A: int, B: int):
+        C = A-B if A >= B else 2**3 + A - B
+        underflow = 1 if A < B else 0
+
+        a = self.controller.get_bits(3)
+        b = ecc.number_to_binary(B)
+        c = self.controller.get_bits(3)
+        u = self.controller.get_bit()
+
+        self.controller.subtract_const_simple(a, b, c, u)
+
+        self.check_change(a, c, u)
+
+        self.controller.set_variable_constant(a, A)
 
         self.check_solution((c, C), (u, underflow))
 

@@ -19,13 +19,9 @@ class ModuloController(ArithmeticController):
             raise ValueError("Length does not match")
 
         ancilla_sub = self.get_bits(self.length)
-        p = self.get_bits(self.length)
-        underflow = self.get_bit()
+        underflow = self.get_one_bit()
 
-        self.subtract(p, a, ancilla_sub, underflow)
-        self.zero_gate(underflow)
-
-        self.set_variable_constant(p, self.P_CONST)
+        self.subtract_const_simple(a, self.P_CONST, ancilla_sub, underflow)
 
     def modulo_p(self, A: VariableType, R: VariableType, ensure_modulo=False):
         """R = A mod p

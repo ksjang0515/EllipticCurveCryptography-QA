@@ -55,6 +55,17 @@ class GateController(BaseController):
         self.zero_gate(zero)
         return zero
 
+    def one_gate(self, in0: Bit) -> None:
+        """add bias toward one"""
+        self._add_variable(in0, -1)
+        self._add_offset(1)
+
+    def get_one_bit(self) -> Bit:
+        """create a new bit and add bias to one"""
+        one = self.get_bit()
+        self.one_gate(one)
+        return one
+
     def not_gate(self, in0: Bit, out: Bit) -> None:
         """not gate"""
         # add the variables (in order)

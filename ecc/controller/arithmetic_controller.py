@@ -17,7 +17,7 @@ class ArithmeticController(GateController):
         c = self.check_VariableType(C)
 
         if not len(c) == max(len(a), len(b)) + 1:
-            raise ValueError("out Variable length is too short")
+            raise ValueError("C length is too short")
 
         if len(a) < len(b):
             # swap so var1 is longer than var2
@@ -61,7 +61,7 @@ class ArithmeticController(GateController):
         c = self.check_VariableType(C)
 
         if not len(c) == max(len(a), len(b)):
-            raise ValueError("out Variable length is too short")
+            raise ValueError("C length is too short")
 
         ancilla = self.get_bit()
         c_ = [*c, ancilla]
@@ -81,10 +81,10 @@ class ArithmeticController(GateController):
         c = self.check_VariableType(C)
 
         if len(a) < len(b):
-            raise ValueError("constant cannot be longer than variable")
+            raise ValueError("B cannot be longer than A")
 
         if not len(c) == len(a) + 1:
-            raise ValueError("out Variable length is too short")
+            raise ValueError("C length is too short")
 
         carry = None
         for i in range(len(b)):
@@ -134,25 +134,31 @@ class ArithmeticController(GateController):
 
         c[-1].index = carry.index
 
-    def subtract(
-        self,
-        A: VariableType,
-        B: VariableType,
-        C: VariableType,
-        underflow: Bit,
-    ):
+    def subtract(self, A: VariableType, B: VariableType, C: VariableType, underflow: Bit,):
         """C = A - B"""
         a = self.check_VariableType(A)
         b = self.check_VariableType(B)
         c = self.check_VariableType(C)
 
         if not (len(c) == len(a) == len(b)):
-            raise ValueError(
-                "variable1, variable2, output length must be same")
+            raise ValueError("A, B, C length must be same")
 
         var_ = [*a, underflow]
 
         self.add(b, c, var_)
+
+    def subtract_const(self, A: VariableType, B: ConstantType, C: VariableType, underflow: Bit):
+        """C = A - B"""
+        a = self.check_VariableType(A)
+        b = self.check_ConstantType(B)
+        c = self.check_VariableType(C)
+
+        if len(c) != len(a):
+            raise ValueError("A, C length must be same")
+
+        var_ = [*a, underflow]
+
+        self.add_const(c, b, var_)
 
     def multiply(
         self, A: VariableType, B: VariableType, C: VariableType
@@ -167,7 +173,7 @@ class ArithmeticController(GateController):
         c_length = len(c)
 
         if a_length + b_length != c_length and a_length * b_length != c_length:
-            raise ValueError("out Variable length is too short")
+            raise ValueError("C length is too short")
 
         ancilla = self.get_bits(a_length-1)
         ctrl_ancilla_var = [c[0], *ancilla]
@@ -196,17 +202,17 @@ class ArithmeticController(GateController):
     def multiply_const(
         self, A: VariableType, B: ConstantType, C: VariableType
     ) -> None:
-        """C = A * B
-        Unlike add_const method, multiply_const requires less bits because this doesn't use any xor_gate"""
+        """C = A * B"""
         a = self.check_VariableType(A)
         b = self.check_ConstantType(B)
         c = self.check_VariableType(C)
 
         a_length = len(a)
         b_length = len(b)
+        c_length = len(c)
 
-        if a_length + b_length != len(c) and a_length * b_length != len(c):
-            raise ValueError("out Variable length is too short")
+        if a_length + b_length != c_length and a_length * b_length != c_length:
+            raise ValueError("C length is too short")
 
         pre_add_ancilla_var = []
         for i in range(b_length):
@@ -256,7 +262,7 @@ class ArithmeticController(GateController):
         var_length = len(a)  # n
 
         if 2 * var_length != len(c):
-            raise ValueError("out Variable length is too short")
+            raise ValueError("C length is too short")
 
         ctrl_ancilla_var = self.get_bits(var_length)
         ctrl_skip_var(a, 0, ctrl_ancilla_var)
