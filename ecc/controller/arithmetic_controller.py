@@ -28,29 +28,21 @@ class ArithmeticController(GateController):
         carry = self.get_bit()
         self.halfadder_gate(a[0], b[0], c[0], carry)
 
-        for i in range(1, len(b)-1):
+        for i in range(1, len(b)):
             pre_carry = carry
             carry = self.get_bit()
             self.fulladder_gate(a[i], b[i], pre_carry, c[i], carry)
 
-        i = len(b)-1
-        pre_carry = carry
         if len(a) == len(b):
-            carry = c[i+1]
-            self.fulladder_gate(a[i], b[i], pre_carry, c[i], carry)
+            self.merge_bit(c[-1], carry)
             return
-        carry = self.get_bit()
-        self.fulladder_gate(a[i], b[i], pre_carry, c[i], carry)
 
-        for i in range(len(b), len(a)-1):
+        for i in range(len(b), len(a)):
             pre_carry = carry
             carry = self.get_bit()
             self.halfadder_gate(a[i], pre_carry, c[i], carry)
 
-        i = len(a)-1
-        pre_carry = carry
-        carry = c[i+1]
-        self.halfadder_gate(a[i], pre_carry, c[i], carry)
+        self.merge_bit(c[-1], carry)
 
     def add_no_overflow(
         self, A: VariableType, B: VariableType, C: VariableType
@@ -71,10 +63,7 @@ class ArithmeticController(GateController):
     def add_const(
         self, A: VariableType, B: ConstantType, C: VariableType
     ) -> None:
-        """C = A + B(constant)
-        C might change"""
-
-        warnings.warn("add_const, C might change")
+        """C = A + B(constant)"""
 
         a = self.check_VariableType(A)
         b = self.check_ConstantType(B)
@@ -107,20 +96,19 @@ class ArithmeticController(GateController):
                 else:
                     sum_ = a[i]
 
-            c[i].index = sum_.index
+            self.merge_bit(c[i], sum_)
 
         if len(a) == len(b):
-            c[-1].index = carry.index
+            self.merge_bit(c[-1], carry)
             return
 
         if not carry:
             for i in range(len(b), len(a)):
-                c[i].index = a[i].index
+                self.merge_bit(c[i], a[i])
 
             zero = self.get_bit()
             self.zero_gate(zero)
-            c[-1].index = zero.index
-
+            self.merge_bit(c[-1], zero)
             return
 
         for i in range(len(b), len(a)):
@@ -130,9 +118,9 @@ class ArithmeticController(GateController):
 
             self.halfadder_gate(a[i], pre_carry, sum_, carry)
 
-            c[i].index = sum_.index
+            self.merge_bit(c[i], sum_)
 
-        c[-1].index = carry.index
+        self.merge_bit(c[-1], carry)
 
     def subtract(self, A: VariableType, B: VariableType, C: VariableType, underflow: Bit,):
         """C = A - B"""
@@ -175,29 +163,24 @@ class ArithmeticController(GateController):
         if a_length + b_length != c_length and a_length * b_length != c_length:
             raise ValueError("C length is too short")
 
-        ancilla = self.get_bits(a_length-1)
-        ctrl_ancilla_var = [c[0], *ancilla]
+        ctrl_ancilla_var = self.get_bits(a_length)
         self.ctrl_var(b[0], a, ctrl_ancilla_var)
 
+        self.merge_bit(c[0], ctrl_ancilla_var[0])
         pre_add_ancilla_var = ctrl_ancilla_var[1:]  # n-1
 
-        for i in range(1, b_length-1):
+        for i in range(1, b_length):
             ctrl_ancilla_var = self.get_bits(a_length)  # n
             self.ctrl_var(b[i], a, ctrl_ancilla_var)
 
             # n+1 (n+n => n+1 or n-1+n => n+1)
-            ancilla = self.get_bits(a_length)
-            add_ancilla_var = [c[i], *ancilla]
+            add_ancilla_var = self.get_bits(a_length+1)
             self.add(pre_add_ancilla_var, ctrl_ancilla_var, add_ancilla_var)
 
+            self.merge_bit(c[i], add_ancilla_var[0])
             pre_add_ancilla_var = add_ancilla_var[1:]  # n
 
-        i = b_length-1
-        ctrl_ancilla_var = self.get_bits(a_length)  # n
-        self.ctrl_var(b[i], a, ctrl_ancilla_var)
-
-        add_ancilla_var = c[i:]
-        self.add(pre_add_ancilla_var, ctrl_ancilla_var, add_ancilla_var)
+        self.merge_variable(c[b_length:c_length], pre_add_ancilla_var)
 
     def multiply_const(
         self, A: VariableType, B: ConstantType, C: VariableType
@@ -220,38 +203,42 @@ class ArithmeticController(GateController):
                 if b[i] == 1:
                     add_ancilla_var = self.get_bits(a_length + 1)
                     self.add(a, pre_add_ancilla_var, add_ancilla_var)
-                    c[i].index = add_ancilla_var[0].index
+
+                    self.merge_bit(c[i], add_ancilla_var[0])
                     pre_add_ancilla_var = add_ancilla_var[1:]
 
                 else:
-                    c[i].index = pre_add_ancilla_var[0].index
+                    self.merge_bit(c[i], pre_add_ancilla_var[0])
                     pre_add_ancilla_var = pre_add_ancilla_var[1:]
 
             else:
                 if b[i] == 1:
                     ctrl_ancilla_var = a[:]
-                    c[i].index = ctrl_ancilla_var[0].index
+
+                    self.merge_bit(c[i], ctrl_ancilla_var[0])
                     pre_add_ancilla_var = ctrl_ancilla_var[1:]
 
                 else:
-                    c[i].index = self.get_zero_bit().index
+                    zero_bit = self.get_zero_bit()
+                    self.merge_bit(c[i], zero_bit)
 
-        for i in range(len(pre_add_ancilla_var)):
-            c[b_length + i].index = pre_add_ancilla_var[i].index
+        self.merge_variable(
+            c[b_length:b_length+len(pre_add_ancilla_var)], pre_add_ancilla_var)
 
         current = b_length + len(pre_add_ancilla_var)
         if current == len(c):
             return
 
         for i in range(current, len(c)):
-            c[i].index = self.get_zero_bit().index
+            zero_bit = self.get_zero_bit()
+            self.merge_bit(c[i], zero_bit)
 
     def square(self, A: VariableType, C: VariableType) -> None:
         """C = A^2"""
         def ctrl_skip_var(var, index, out):
             for i in range(len(var)):
                 if i == index:
-                    out[i].index = var[i].index
+                    out[i] = var[i]
                     continue
 
                 self.and_gate(var[i], var[index], out[i])
@@ -268,7 +255,7 @@ class ArithmeticController(GateController):
         ctrl_skip_var(a, 0, ctrl_ancilla_var)
 
         pre_add_ancilla_var = ctrl_ancilla_var[1:]  # n-1
-        c[0].index = ctrl_ancilla_var[0].index
+        self.merge_bit(c[0], ctrl_ancilla_var[0])
 
         for i in range(1, var_length):
             ctrl_ancilla_var = self.get_bits(var_length)  # n
@@ -279,8 +266,8 @@ class ArithmeticController(GateController):
             self.add(pre_add_ancilla_var, ctrl_ancilla_var, add_ancilla_var)
 
             pre_add_ancilla_var = add_ancilla_var[1:]  # n
-            c[i].index = add_ancilla_var[0].index
+            self.merge_bit(c[i], add_ancilla_var[0])
 
         # (n + n2) - n2 = n
-        for i in range(len(pre_add_ancilla_var)):
-            c[var_length + i].index = pre_add_ancilla_var[i].index
+
+        self.merge_variable(c[var_length:], pre_add_ancilla_var)
