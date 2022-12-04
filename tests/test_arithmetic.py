@@ -37,23 +37,7 @@ class TestArithmeticController(base.Base):
 
         self.controller.add_const(a, b, c)
 
-        self.check_change(a)
-
-        self.controller.set_variable_constant(a, A)
-
-        self.check_solution((c, C))
-
-    @parameterized.expand([(3, 6, 3), (7, 3, 3), (3, 6, 2)])
-    def test_add_const_simple(self, A: int, B: int, a_length: int):
-        C = A+B
-
-        a = self.controller.get_bits(a_length)
-        b = ecc.number_to_binary(B)
-        c = self.controller.get_bits(max(a_length, len(b))+1)
-
-        self.controller.add_const_simple(a, b, c)
-
-        self.check_change(a, c)
+        # self.check_change(a)
 
         self.controller.set_variable_constant(a, A)
 
@@ -71,47 +55,27 @@ class TestArithmeticController(base.Base):
 
         self.controller.subtract(a, b, c, u)
 
-        self.check_change(a, b, c, u)
-
         self.controller.set_variable_constant(a, A)
         self.controller.set_variable_constant(b, B)
 
         self.check_solution((c, C), (u, underflow))
 
-    # @parameterized.expand([(3, 4, 3), (3, 3, 3), (6, 4, 3)])
-    # def test_subtract_const(self, A: int, B: int, a_length: int):
-    #     C = A-B if A >= B else 2**3 + A - B
-    #     underflow = 1 if A < B else 0
-
-    #     a = self.controller.get_bits(a_length)
-    #     b = ecc.number_to_binary(B)
-    #     c = self.controller.get_bits(a_length)
-    #     u = self.controller.get_bit()
-
-    #     self.controller.subtract_const(a, b, c, u)
-
-    #     self.check_change(a)
-
-    #     self.controller.set_variable_constant(a, A)
-    #     self.controller.set_variable_constant(b, B)
-
-    #     self.check_solution((c, C), (u, underflow))
-
-    @parameterized.expand([(3, 4), (3, 3), (6, 4)])
-    def test_subtract_const_simple(self, A: int, B: int):
+    @parameterized.expand([(3, 4, 3), (3, 3, 3), (6, 4, 3)])
+    def test_subtract_const(self, A: int, B: int, a_length: int):
         C = A-B if A >= B else 2**3 + A - B
         underflow = 1 if A < B else 0
 
-        a = self.controller.get_bits(3)
+        a = self.controller.get_bits(a_length)
         b = ecc.number_to_binary(B)
-        c = self.controller.get_bits(3)
+        c = self.controller.get_bits(a_length)
         u = self.controller.get_bit()
 
-        self.controller.subtract_const_simple(a, b, c, u)
+        self.controller.subtract_const(a, b, c, u)
 
-        self.check_change(a, c, u)
+        self.check_change(a)
 
         self.controller.set_variable_constant(a, A)
+        self.controller.set_variable_constant(b, B)
 
         self.check_solution((c, C), (u, underflow))
 
@@ -124,8 +88,6 @@ class TestArithmeticController(base.Base):
         c = self.controller.get_bits(6)
 
         self.controller.multiply(a, b, c)
-
-        self.check_change(a, b, c)
 
         self.controller.set_variable_constant(a, A)
         self.controller.set_variable_constant(b, B)
@@ -143,7 +105,18 @@ class TestArithmeticController(base.Base):
 
         self.controller.multiply_const(a, b, c)
 
-        self.check_change(a)
+        self.controller.set_variable_constant(a, A)
+
+        self.check_solution((c, C))
+
+    @parameterized.expand([(0,), (1,), (2,), (3,), (4,), (5,), (6,), (7,)])
+    def test_square(self, A):
+        C = A**2
+
+        a = self.controller.get_bits(3)
+        c = self.controller.get_bits(6)
+
+        self.controller.square(a, c)
 
         self.controller.set_variable_constant(a, A)
 
