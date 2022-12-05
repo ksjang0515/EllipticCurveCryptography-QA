@@ -38,20 +38,28 @@ class BitController(BaseController):
 
         return const
 
-    def get_bit(self) -> Bit:
-        """create and returns a bit"""
-        bit = self.bit_cnt
-        self.bit_cnt += 1
+    def get_bit(self, num: int = None) -> Union[Variable, Bit]:
+        """create and returns Bit/Variable"""
+        if num == None:
+            bit = self.bit_cnt
+            self.bit_cnt += 1
 
-        self.bit_to_name[bit] = bit
-        self.name_to_bit[bit] = [bit]
+            self.bit_to_name[bit] = bit
+            self.name_to_bit[bit] = [bit]
+
+        else:
+            bit: Variable = [self.get_bit() for _ in range(num)]
 
         return bit
 
-    def get_bits(self, num: int) -> Variable:
-        """create and returns list of bits"""
-        bits = [self.get_bit() for _ in range(num)]
-        return bits
+    def get_bits(self, *args: int) -> list[Variable]:
+        """create list of variables"""
+        r = []
+        for num in args:
+            bits = self.get_bit(num)
+            r.append(bits)
+
+        return r
 
     def get_name(self, bit: Union[Variable, Bit]) -> Union[list[Name], Name]:
         """returns name of given bits"""
@@ -79,11 +87,7 @@ class BitController(BaseController):
 
         return c
 
-    def extract_bit(self, sample: SampleView, bit: Bit) -> Binary:
-        """returns value of given bit in sample, if not present it tries to search on constants"""
-        if not isinstance(sample, SampleView):
-            sample = sample.sample
-
+    def _extract_bit(self, sample: SampleView, bit: Bit) -> Optional[Binary]:
         name = self.get_name(bit)
 
         if (result := sample.get(name)) != None:
@@ -91,22 +95,45 @@ class BitController(BaseController):
 
         return self.get_constant_from_name(name)
 
-    def extract_variable(self, sample: SampleView, var: Variable) -> list[Binary]:
-        """returns value of given bits in sample, if not present it tries to search on constants"""
+    def extract_bit(self, sample: SampleView, bit: Bit) -> Optional[Binary]:
+        """returns value of given bit in sample, if not present it tries to search on constants"""
+        sample = self.check_Sample(sample)
 
-        if not isinstance(sample, SampleView):
-            sample = sample.sample
+        return self._extract_bit(sample, bit)
 
+    def _extract_variable(self, sample: SampleView, var: Variable) -> list[Optional[Binary]]:
         result = []
         for bit in var:
-            name = self.get_name(bit)
+            r = self._extract_bit(sample, bit)
+            result.append(r)
 
-            if (r := sample.get(name)) == None:
-                r = self.get_constant_from_name(name)
+        return result
+
+    def extract_variable(self, sample: SampleView, var: Variable) -> list[Optional[Binary]]:
+        """returns value of given bits in sample, if not present it tries to search on constants"""
+        sample = self.check_Sample(sample)
+
+        return self._extract_variable(sample, var)
+
+    def extract(self, sample, *args: Union[Bit, Variable]) -> list[Union[Optional[Binary], list[Optional[Binary]]]]:
+        sample = self.check_Sample(sample)
+
+        result = []
+        for b in args:
+            if isinstance(b, Bit):
+                r = self._extract_bit(sample, b)
+            else:
+                r = self._extract_variable(sample, b)
 
             result.append(r)
 
         return result
+
+    def check_Sample(self, sample: SampleView):
+        if not isinstance(sample, SampleView):
+            return sample.sample
+
+        return sample
 
     def set_bit_constant(self, bit: Bit, value: Binary) -> None:
         """temporarily stores bit value on constants dictionary, will be applied before running solver"""
@@ -152,7 +179,9 @@ class BitController(BaseController):
     def _set_constant(self) -> None:
         """ran before running solver to apply stored constants"""
         for key, value in self.constants.items():
-            self._fix_variable(key, value)
+            bit_name = self.get_name(key)
+            self._fix_variable_by_name(bit_name, value)
+            self.constants_from_name[bit_name] = value
 
     def run_DWaveSampler(self, *args) -> SampleSet:
         self._set_constant()
@@ -166,6 +195,9 @@ class BitController(BaseController):
 
     def _fix_variable(self, bit: Bit, value: Binary):
         bit_name = self.get_name(bit)
+        super()._fix_variable(bit_name, value)
+
+    def _fix_variable_by_name(self, bit_name: Name, value: Binary):
         super()._fix_variable(bit_name, value)
 
     def _add_variable(self, bit: Bit, bias: int = 0) -> None:
