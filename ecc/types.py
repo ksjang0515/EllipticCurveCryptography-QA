@@ -1,5 +1,7 @@
 from typing import Union
-from ecc.bit import Bit
 
-VariableType = Union[str, list[Bit]]
-ConstantType = Union[int, list[int]]
+Bit = int
+Binary = int
+Name = int
+Variable = list[Bit]
+Constant = Union[int, list[int]]
