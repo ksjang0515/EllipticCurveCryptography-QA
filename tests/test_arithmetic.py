@@ -67,7 +67,7 @@ class TestArithmeticController(base.Base):
 
         self.check_solution((c, C), (u, underflow))
 
-    @parameterized.expand([(5, 7), (6, 3), (1, 3), (2, 7)])
+    @parameterized.expand([(5, 7), (6, 3), (1, 3), (2, 7), (5, 1)])
     def test_multiply(self, A, B):
         C = A*B
 
