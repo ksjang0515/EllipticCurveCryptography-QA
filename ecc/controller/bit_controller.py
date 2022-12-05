@@ -90,10 +90,13 @@ class BitController(BaseController):
     def _extract_bit(self, sample: SampleView, bit: Bit) -> Optional[Binary]:
         name = self.get_name(bit)
 
-        if (result := sample.get(name)) != None:
-            return result
+        try:
+            # SampleView raises ValueError when using get
+            result = sample.get(name)
+        except ValueError:
+            return self.get_constant_from_name(name)
 
-        return self.get_constant_from_name(name)
+        return result
 
     def extract_bit(self, sample: SampleView, bit: Bit) -> Optional[Binary]:
         """returns value of given bit in sample, if not present it tries to search on constants"""
@@ -195,10 +198,13 @@ class BitController(BaseController):
 
     def _fix_variable(self, bit: Bit, value: Binary):
         bit_name = self.get_name(bit)
-        super()._fix_variable(bit_name, value)
+        super()._fix_variable_by_name(bit_name, value)
 
     def _fix_variable_by_name(self, bit_name: Name, value: Binary):
-        super()._fix_variable(bit_name, value)
+        try:
+            super()._fix_variable(bit_name, value)
+        except ValueError:
+            pass
 
     def _add_variable(self, bit: Bit, bias: int = 0) -> None:
         bit_name = self.get_name(bit)
