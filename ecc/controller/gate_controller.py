@@ -1,8 +1,8 @@
-from ecc.controller.base_controller import BaseController
-from ecc.types import VariableType, ConstantType, Bit
+from ecc.controller.bit_controller import BitController
+from ecc.types import Variable, Bit
 
 
-class GateController(BaseController):
+class GateController(BitController):
     def __init__(self) -> None:
         super().__init__()
 
@@ -22,9 +22,7 @@ class GateController(BaseController):
         self._add_quadratic(in1, carry, -4)
         self._add_quadratic(sum_, carry, 4)
 
-    def fulladder_gate(
-        self, in0: Bit, in1: Bit, in2: Bit, sum_: Bit, carry: Bit
-    ) -> None:
+    def fulladder_gate(self, in0: Bit, in1: Bit, in2: Bit, sum_: Bit, carry: Bit) -> None:
         """fulladder gate"""
         # add the variables (in order)
         self._add_variable(in0, 1)
@@ -47,7 +45,7 @@ class GateController(BaseController):
 
     def zero_gate(self, in0: Bit) -> None:
         """add bias toward zero"""
-        self._add_variable(in0, 1)
+        self.set_bit_constant(in0, 0)
 
     def get_zero_bit(self) -> Bit:
         """create a new bit and add bias to zero"""
@@ -57,10 +55,9 @@ class GateController(BaseController):
 
     def one_gate(self, in0: Bit) -> None:
         """add bias toward one"""
-        self._add_variable(in0, -1)
-        self._add_offset(1)
+        self.set_bit_constant(in0, 1)
 
-    def get_one_bit(self) -> Bit:
+    def get_one_bit(self):
         """create a new bit and add bias to one"""
         one = self.get_bit()
         self.one_gate(one)
@@ -144,33 +141,20 @@ class GateController(BaseController):
         self._add_quadratic(ctrl, ancilla, -4)
         self._add_quadratic(out, ancilla, -4)
 
-    def ctrl_select_variable(
-        self,
-        A: VariableType,
-        B: VariableType,
-        ctrl: Bit,
-        C: VariableType,
-    ) -> None:
-        """A if ctrl is 0 B if ctrl is 1"""
-        a = self.check_VariableType(A)
-        b = self.check_VariableType(B)
-        out = self.check_VariableType(C)
+    def ctrl_select_variable(self, a: Variable, b: Variable, ctrl: Bit, c: Variable) -> None:
+        """a if ctrl is 0 b if ctrl is 1"""
 
-        if len(a) == len(b) == len(out):
+        if len(a) == len(b) == len(c):
             pass
         else:
             raise ValueError(
                 "length of variable1, variable2, output should be same")
 
         for i in range(len(a)):
-            self.ctrl_select(a[i], b[i], ctrl, out[i])
+            self.ctrl_select(a[i], b[i], ctrl, c[i])
 
-    def ctrl_var(
-        self, ctrl: Bit, A: VariableType, C: VariableType
-    ) -> None:
+    def ctrl_var(self, ctrl: Bit, a: Variable, c: Variable) -> None:
         """Returns var if control is 1, else returns 0"""
-        a = self.check_VariableType(A)
-        c = self.check_VariableType(C)
 
         if len(a) != len(c):
             raise ValueError("var and out Variable length is not same")
