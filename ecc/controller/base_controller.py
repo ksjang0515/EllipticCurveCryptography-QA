@@ -37,6 +37,9 @@ class BaseController:
     def shape(self) -> int:
         return self.bqm.shape
 
+    def _fix_variable(self, bit, value):
+        self.bqm.fix_variable(bit, value)
+
     def _add_variable(self, bit, bias: int = 0) -> None:
         self.bqm.add_variable(bit, bias)
 
