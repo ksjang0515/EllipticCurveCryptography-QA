@@ -27,9 +27,12 @@ class BaseController:
 
         return solution
 
-    def run_ExactSolver(self) -> SampleSet:
+    def run_ExactSolver(self, lowest=False) -> SampleSet:
         solver = ExactSolver()
         solution = solver.sample(self.bqm)
+
+        if lowest:
+            solution = solution.lowest()
 
         return solution
 
