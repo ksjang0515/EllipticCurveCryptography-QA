@@ -1,10 +1,11 @@
 import ecc
+from ecc.types import Bit, Variable, Binary, Constant
 import unittest
 from typing import Union
 
 
 class Base(unittest.TestCase):
-    def check_solution(self, *check_list: Union[tuple[ecc.Bit, int], tuple[list[ecc.Bit], Union[list[int], int]]]):
+    def check_solution(self, *check_list: Union[tuple[Bit, Binary], tuple[Variable, Constant]]):
         solution = self.controller.run_ExactSolver()
         lowest = solution.lowest()
 
@@ -14,7 +15,7 @@ class Base(unittest.TestCase):
         sample = lowest.samples()[0]
 
         for out, expected in check_list:
-            if isinstance(out, ecc.Bit):
+            if isinstance(out, Bit):
                 result = self.controller.extract_bit(sample, out)
             else:
                 if isinstance(expected, int):
@@ -24,12 +25,20 @@ class Base(unittest.TestCase):
 
             self.assertEqual(result, expected, "Wrong result")
 
-    def check_change(self, *args):
-        for bit in args:
-            if isinstance(bit, list):
-                for b in bit:
-                    self.assertFalse(b.changed, "Bit changed")
+    def get_result(self, *args) -> set[str]:
+        lowest = self.controller.run_ExactSolver(True)
 
-                continue
+        result = set()
+        for s in lowest:
+            extracted = self.controller.extract(s, *args)
+            r = ''
+            for e in extracted:
+                if isinstance(e, Binary):
+                    r += str(e)
+                else:
+                    for b in e:
+                        r += str(b)
 
-            self.assertFalse(bit.changed, "Bit changed")
+            result.add(r)
+
+        return result
