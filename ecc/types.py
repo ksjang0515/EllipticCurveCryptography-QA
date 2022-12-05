@@ -4,4 +4,4 @@ Bit = int
 Binary = int
 Name = int
 Variable = list[Bit]
-Constant = Union[int, list[int]]
+Constant = Union[int, list[Binary]]
