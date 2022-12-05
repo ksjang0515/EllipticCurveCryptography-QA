@@ -1,21 +1,16 @@
-import warnings
+
+from typing import Optional
 
 from ecc.controller.gate_controller import GateController
-from ecc.types import VariableType, ConstantType, Bit
+from ecc.types import Bit, Binary, Name, Variable, Constant
 
 
 class ArithmeticController(GateController):
     def __init__(self) -> None:
         super().__init__()
 
-    def add(
-        self, A: VariableType, B: VariableType, C: VariableType
-    ) -> None:
-        """C = A + B"""
-        a = self.check_VariableType(A)
-        b = self.check_VariableType(B)
-        c = self.check_VariableType(C)
-
+    def add(self, a: Variable, b: Variable, c: Variable) -> None:
+        """c = a + b"""
         if not len(c) == max(len(a), len(b)) + 1:
             raise ValueError("C length is too short")
 
@@ -25,7 +20,7 @@ class ArithmeticController(GateController):
             a = b
             b = temp
 
-        carry = self.get_bit()
+        carry: Bit = self.get_bit()
         self.halfadder_gate(a[0], b[0], c[0], carry)
 
         for i in range(1, len(b)):
@@ -44,13 +39,8 @@ class ArithmeticController(GateController):
 
         self.merge_bit(c[-1], carry)
 
-    def add_no_overflow(
-        self, A: VariableType, B: VariableType, C: VariableType
-    ) -> None:
-        """C = A + B (no last carry)"""
-        a = self.check_VariableType(A)
-        b = self.check_VariableType(B)
-        c = self.check_VariableType(C)
+    def add_no_overflow(self, a: Variable, b: Variable, c: Variable) -> None:
+        """c = a + b (no last carry), don't use if a+b could be larger than c's maximum value"""
 
         if not len(c) == max(len(a), len(b)):
             raise ValueError("C length is too short")
@@ -59,15 +49,10 @@ class ArithmeticController(GateController):
         c_ = [*c, ancilla]
 
         self.add(a, b, c_)
+        self.zero_gate(ancilla)
 
-    def add_const(
-        self, A: VariableType, B: ConstantType, C: VariableType
-    ) -> None:
-        """C = A + B(constant)"""
-
-        a = self.check_VariableType(A)
-        b = self.check_ConstantType(B)
-        c = self.check_VariableType(C)
+    def add_const(self, a: Variable, b: Variable, c: Variable) -> None:
+        """c = a + b(constant)"""
 
         if len(a) < len(b):
             raise ValueError("B cannot be longer than A")
@@ -75,13 +60,11 @@ class ArithmeticController(GateController):
         if not len(c) == len(a) + 1:
             raise ValueError("C length is too short")
 
-        carry = None
+        carry: Optional[Bit] = None
         for i in range(len(b)):
-            if carry:
+            if carry != None:
                 pre_carry = carry
-                carry = self.get_bit()
-                sum_ = self.get_bit()
-                ancilla = self.get_bit()
+                carry, sum_, ancilla = self.get_bit(3)
 
                 self.fulladder_gate(a[i], ancilla, pre_carry, sum_, carry)
                 self.set_bit_constant(ancilla, b[i])
@@ -103,30 +86,22 @@ class ArithmeticController(GateController):
             return
 
         if not carry:
-            for i in range(len(b), len(a)):
-                self.merge_bit(c[i], a[i])
+            self.merge_variable(c[len(b): len(a)], a[len(b): len(a)])
 
-            zero = self.get_bit()
-            self.zero_gate(zero)
-            self.merge_bit(c[-1], zero)
+            self.zero_gate(c[-1])
             return
 
         for i in range(len(b), len(a)):
             pre_carry = carry
-            carry = self.get_bit()
-            sum_ = self.get_bit()
+            carry, sum_ = self.get_bit(2)
 
             self.halfadder_gate(a[i], pre_carry, sum_, carry)
-
             self.merge_bit(c[i], sum_)
 
         self.merge_bit(c[-1], carry)
 
-    def subtract(self, A: VariableType, B: VariableType, C: VariableType, underflow: Bit,):
-        """C = A - B"""
-        a = self.check_VariableType(A)
-        b = self.check_VariableType(B)
-        c = self.check_VariableType(C)
+    def subtract(self, a: Variable, b: Variable, c: Variable, underflow: Bit):
+        """c = a - b"""
 
         if not (len(c) == len(a) == len(b)):
             raise ValueError("A, B, C length must be same")
@@ -135,11 +110,8 @@ class ArithmeticController(GateController):
 
         self.add(b, c, var_)
 
-    def subtract_const(self, A: VariableType, B: ConstantType, C: VariableType, underflow: Bit):
-        """C = A - B"""
-        a = self.check_VariableType(A)
-        b = self.check_ConstantType(B)
-        c = self.check_VariableType(C)
+    def subtract_const(self, a: Variable, b: Constant, c: Variable, underflow: Bit) -> None:
+        """c = a - b"""
 
         if len(c) != len(a):
             raise ValueError("A, C length must be same")
@@ -148,13 +120,8 @@ class ArithmeticController(GateController):
 
         self.add_const(c, b, var_)
 
-    def multiply(
-        self, A: VariableType, B: VariableType, C: VariableType
-    ) -> None:
-        """C = A * B"""
-        a = self.check_VariableType(A)
-        b = self.check_VariableType(B)
-        c = self.check_VariableType(C)
+    def multiply(self, a: Variable, b: Variable, c: Variable) -> None:
+        """c = a * b"""
 
         a_length = len(a)  # n
         b_length = len(b)  # n2
@@ -163,18 +130,18 @@ class ArithmeticController(GateController):
         if a_length + b_length != c_length and a_length * b_length != c_length:
             raise ValueError("C length is too short")
 
-        ctrl_ancilla_var = self.get_bits(a_length)
+        ctrl_ancilla_var = self.get_bit(a_length)
         self.ctrl_var(b[0], a, ctrl_ancilla_var)
 
         self.merge_bit(c[0], ctrl_ancilla_var[0])
         pre_add_ancilla_var = ctrl_ancilla_var[1:]  # n-1
 
         for i in range(1, b_length):
-            ctrl_ancilla_var = self.get_bits(a_length)  # n
+            ctrl_ancilla_var = self.get_bit(a_length)  # n
             self.ctrl_var(b[i], a, ctrl_ancilla_var)
 
             # n+1 (n+n => n+1 or n-1+n => n+1)
-            add_ancilla_var = self.get_bits(a_length+1)
+            add_ancilla_var = self.get_bit(a_length+1)
             self.add(pre_add_ancilla_var, ctrl_ancilla_var, add_ancilla_var)
 
             self.merge_bit(c[i], add_ancilla_var[0])
@@ -182,13 +149,8 @@ class ArithmeticController(GateController):
 
         self.merge_variable(c[b_length:c_length], pre_add_ancilla_var)
 
-    def multiply_const(
-        self, A: VariableType, B: ConstantType, C: VariableType
-    ) -> None:
-        """C = A * B"""
-        a = self.check_VariableType(A)
-        b = self.check_ConstantType(B)
-        c = self.check_VariableType(C)
+    def multiply_const(self, a: Variable, b: Constant, c: Variable) -> None:
+        """c = a * b"""
 
         a_length = len(a)
         b_length = len(b)
@@ -201,7 +163,7 @@ class ArithmeticController(GateController):
         for i in range(b_length):
             if pre_add_ancilla_var:
                 if b[i] == 1:
-                    add_ancilla_var = self.get_bits(a_length + 1)
+                    add_ancilla_var = self.get_bit(a_length + 1)
                     self.add(a, pre_add_ancilla_var, add_ancilla_var)
 
                     self.merge_bit(c[i], add_ancilla_var[0])
@@ -219,8 +181,7 @@ class ArithmeticController(GateController):
                     pre_add_ancilla_var = ctrl_ancilla_var[1:]
 
                 else:
-                    zero_bit = self.get_zero_bit()
-                    self.merge_bit(c[i], zero_bit)
+                    self.zero_gate(c[i])
 
         self.merge_variable(
             c[b_length:b_length+len(pre_add_ancilla_var)], pre_add_ancilla_var)
@@ -230,11 +191,11 @@ class ArithmeticController(GateController):
             return
 
         for i in range(current, len(c)):
-            zero_bit = self.get_zero_bit()
-            self.merge_bit(c[i], zero_bit)
+            self.zero_gate(c[i])
 
-    def square(self, A: VariableType, C: VariableType) -> None:
-        """C = A^2"""
+    def square(self, a: Variable, c: Variable) -> None:
+        """c = a^2"""
+
         def ctrl_skip_var(var, index, out):
             for i in range(len(var)):
                 if i == index:
@@ -243,26 +204,23 @@ class ArithmeticController(GateController):
 
                 self.and_gate(var[i], var[index], out[i])
 
-        a = self.check_VariableType(A)
-        c = self.check_VariableType(C)
-
         var_length = len(a)  # n
 
         if 2 * var_length != len(c):
             raise ValueError("C length is too short")
 
-        ctrl_ancilla_var = self.get_bits(var_length)
+        ctrl_ancilla_var = self.get_bit(var_length)
         ctrl_skip_var(a, 0, ctrl_ancilla_var)
 
         pre_add_ancilla_var = ctrl_ancilla_var[1:]  # n-1
         self.merge_bit(c[0], ctrl_ancilla_var[0])
 
         for i in range(1, var_length):
-            ctrl_ancilla_var = self.get_bits(var_length)  # n
+            ctrl_ancilla_var = self.get_bit(var_length)  # n
             ctrl_skip_var(a, i, ctrl_ancilla_var)
 
             # n+1 (n+n => n+1 or n-1+n => n+1)
-            add_ancilla_var = self.get_bits(var_length + 1)
+            add_ancilla_var = self.get_bit(var_length + 1)
             self.add(pre_add_ancilla_var, ctrl_ancilla_var, add_ancilla_var)
 
             pre_add_ancilla_var = add_ancilla_var[1:]  # n
