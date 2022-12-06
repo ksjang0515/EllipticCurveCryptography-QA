@@ -82,6 +82,10 @@ class ArithmeticController(GateController):
             self.merge_bit(c[i], sum_)
 
         if len(a) == len(b):
+            if carry == None:
+                self.zero_gate(c[-1])
+                return
+
             self.merge_bit(c[-1], carry)
             return
 
