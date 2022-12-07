@@ -51,8 +51,9 @@ class ArithmeticController(GateController):
         self.add(a, b, c_)
         self.zero_gate(ancilla)
 
-    def add_const(self, a: Variable, b: Variable, c: Variable) -> None:
+    def add_const(self, a: Variable, b: Constant, c: Variable) -> None:
         """c = a + b(constant)"""
+        b = self.check_ConstantType(b)
 
         if len(a) < len(b):
             raise ValueError("B cannot be longer than A")
