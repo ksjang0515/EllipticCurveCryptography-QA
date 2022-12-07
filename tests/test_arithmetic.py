@@ -39,7 +39,7 @@ class TestArithmeticController(base.Base):
 
     @parameterized.expand([(3, 4), (3, 3), (6, 4)])
     def test_subtract(self, A: int, B: int):
-        C = A-B if A >= B else 2**3 + A - B
+        C = (A-B) % (2**3)
         underflow = 1 if A < B else 0
 
         a, b, c = self.controller.get_bits(3, 3, 3)
@@ -54,7 +54,7 @@ class TestArithmeticController(base.Base):
 
     @parameterized.expand([(3, 4, 3), (3, 3, 3), (6, 4, 3)])
     def test_subtract_const(self, A: int, B: int, a_length: int):
-        C = A-B if A >= B else 2**3 + A - B
+        C = (A-B) % (2**3)
         underflow = 1 if A < B else 0
 
         a, c = self.controller.get_bits(a_length, a_length)
