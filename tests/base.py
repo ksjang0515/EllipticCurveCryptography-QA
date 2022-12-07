@@ -6,10 +6,9 @@ from typing import Union
 
 class Base(unittest.TestCase):
     def check_solution(self, *check_list: Union[tuple[Bit, Binary], tuple[Variable, Constant]]):
-        solution = self.controller.run_ExactSolver()
-        lowest = solution.lowest()
+        lowest = self.controller.run_ExactSolver(True)
 
-        self.assertEqual(len(lowest), 1, "More than one lowest state")
+        # self.assertEqual(len(lowest), 1, "More than one lowest state")
         self.assertEqual(lowest.record[0].energy, 0, "Energy is not zero")
 
         sample = lowest.samples()[0]
@@ -42,3 +41,11 @@ class Base(unittest.TestCase):
             result.add(r)
 
         return result
+
+    def get_answer(self, file_name) -> set[str]:
+        answer = set()
+        with open(f'{self.data_dir}/{file_name}', 'r') as f:
+            for line in f:
+                answer.add(line.rstrip())
+
+        return answer

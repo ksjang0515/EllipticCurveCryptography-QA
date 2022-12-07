@@ -56,10 +56,11 @@ class EccController(ModuloController):
                       ensure_modulo)  # x_C = lambda^2 -x_B -x_A
 
         # get y3
-        ancilla_x_B = self.get_len_bit()  # to not use point negation
+        # used sub_modp over sub_const_modp to not use point negation
+        ancilla_x_B = self.get_len_bit()
+        self.set_variable_constant(ancilla_x_B, B.x)
         x_B_sub = self.get_len_bit()
         self.sub_modp(ancilla_x_B, C.x, x_B_sub)  # x_B-x_C
-        self.set_variable_constant(ancilla_x_B, B.x)
 
         lambda_mult = self.get_len_bit()
         self.mult_modp(x_B_sub, lambda_, lambda_mult)  # lambda *(x_B-x_C)
@@ -70,7 +71,7 @@ class EccController(ModuloController):
     def ecc_sub(self, A: Point, B: PointConst, C: Point, ensure_modulo=False) -> None:
         """C = A - B => A = B + C"""
 
-        self.ecc_add(B, C, A)
+        self.ecc_add(C, B, A)
 
         if ensure_modulo:
             self.ensure_modulo(C.x)
