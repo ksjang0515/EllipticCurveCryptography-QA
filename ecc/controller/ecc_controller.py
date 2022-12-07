@@ -85,7 +85,7 @@ class EccController(ModuloController):
 
         G = G_DOUBLES[0]
 
-        base_point = self.get_bits(self.length, self.length)
+        base_point = self.new_point()
         # start from G because implementing point at infinity is expensive
         pre_point = base_point
 
