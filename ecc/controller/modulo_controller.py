@@ -1,5 +1,5 @@
 from ecc.controller.arithmetic_controller import ArithmeticController
-from ecc.types import VariableType, ConstantType, Bit
+from ecc.types import Variable, Constant
 from ecc.utilities import number_to_binary
 
 
@@ -11,24 +11,20 @@ class ModuloController(ArithmeticController):
 
         super().__init__()
 
-    def ensure_modulo(self, A: VariableType) -> None:
+    def ensure_modulo(self, a: Variable) -> None:
         """ensure that A is less than P"""
-        a = self.check_VariableType(A)
 
         if len(a) != self.length:
             raise ValueError("Length does not match")
 
-        ancilla_sub = self.get_bits(self.length)
+        ancilla_sub = self.get_bit(self.length)
         underflow = self.get_one_bit()
 
         self.subtract_const(a, self.P_CONST, ancilla_sub, underflow)
 
-    def modulo_p(self, A: VariableType, R: VariableType, ensure_modulo=False):
-        """R = A mod p
+    def modulo_p(self, a: Variable, r: Variable, ensure_modulo=False):
+        """r = a mod p
         calculates A = m*P + R"""
-
-        a = self.check_VariableType(A)
-        r = self.check_VariableType(R)
 
         if len(r) != self.length:
             raise ValueError("Length does not match")
@@ -37,97 +33,73 @@ class ModuloController(ArithmeticController):
         if a_length < self.length:
             raise ValueError("A is too short")
 
-        m_length = a_length - self.length if a_length != self.length else 1
-        m = self.get_bits(m_length)
-        ancilla_mult = self.get_bits(a_length)
+        m_length = a_length - self.length + 1
+        m, ancilla_mult = self.get_bits(m_length, a_length)
+        zero = self.get_zero_bit()
+        ancilla_mult_ = [*ancilla_mult, zero]
 
-        self.multiply_const(m, self.P_CONST, ancilla_mult)
+        self.multiply_const(m, self.P_CONST, ancilla_mult_)
         self.add_no_overflow(ancilla_mult, r, a)
 
         if ensure_modulo:
             self.ensure_modulo(r)
 
     def add_modp(
-        self, A: VariableType, B: VariableType, C: VariableType, ensure_modulo=False
+        self, a: Variable, b: Variable, c: Variable, ensure_modulo=False
     ) -> None:
-        """C = (A+B) mod p"""
+        """c = (a+b) mod p"""
 
-        a = self.check_VariableType(A)
-        b = self.check_VariableType(B)
-        c = self.check_VariableType(C)
-
-        if len(a) == len(b) == len(c) == self.length:
-            pass
-        else:
+        if not (len(a) == len(b) == len(c) == self.length):
             raise ValueError("Length does not match")
 
-        ancilla = self.get_bits(self.length + 1)
+        ancilla = self.get_bit(self.length + 1)
         self.add(a, b, ancilla)
 
         self.modulo_p(ancilla, c, ensure_modulo)
 
-    def add_const_modp(
-        self, A: VariableType, B: ConstantType, C: VariableType, ensure_modulo=False
-    ) -> None:
-        """C = (A+B) mod p"""
+    def add_const_modp(self, a: Variable, b: Constant, c: Variable, ensure_modulo=False) -> None:
+        """c = (a+b) mod p"""
 
-        a = self.check_VariableType(A)
-        b = self.check_ConstantType(B)
-        c = self.check_VariableType(C)
+        b = self.check_ConstantType(b)
 
-        if len(a) == len(c) == self.length:
-            pass
-        else:
+        if not (len(a) == len(c) == self.length):
             raise ValueError("Length does not match")
 
         if len(b) > self.length:
             raise ValueError(
                 "length of B is too long and performance is not checked")
 
-        ancilla_add = self.get_bits(self.length + 1)
-        ancilla_b = self.get_bits(len(b))
-        self.add(a, ancilla_b, ancilla_add)
-        self.set_variable_constant(ancilla_b, b)
+        ancilla_add = self.get_bit(self.length + 1)
+        self.add_const(a, b, ancilla_add)
 
         self.modulo_p(ancilla_add, c, ensure_modulo)
 
-    def sub_modp(
-        self, A: VariableType, B: VariableType, C: VariableType, ensure_modulo=False
-    ) -> None:
-        """C = (A-B) mod p"""
+    def sub_modp(self, a: Variable, b: Variable, c: Variable, ensure_modulo=False) -> None:
+        """c = (a-b) mod p"""
 
-        self.add_modp(B, C, A, ensure_modulo)
+        self.add_modp(b, c, a, ensure_modulo)
 
-    def mult_modp(
-        self, A: VariableType, B: VariableType, C: VariableType, ensure_modulo=False
-    ) -> None:
-        """C = (A*B) mod p"""
+    def sub_const_modp(self, a: Variable, b: Constant, c: Variable, ensure_modulo=False) -> None:
+        """c = (a-b) mod p"""
 
-        a = self.check_VariableType(A)
-        b = self.check_VariableType(B)
-        c = self.check_VariableType(C)
+        self.add_const_modp(c, b, a, ensure_modulo)
+
+    def mult_modp(self, a: Variable, b: Variable, c: Variable, ensure_modulo=False) -> None:
+        """c = (a*b) mod p"""
 
         if len(a) == len(b) == len(c) == self.length:
             pass
         else:
             raise ValueError("Length does not match")
 
-        ancilla_mult = self.get_bits(2 * self.length)
+        ancilla_mult = self.get_bit(2 * self.length)
         self.multiply(a, b, ancilla_mult)
 
         self.modulo_p(ancilla_mult, c, ensure_modulo)
 
-    def mult_const_modp(
-        self,
-        A: VariableType,
-        B: ConstantType,
-        C: VariableType,
-        ensure_modulo=False,
-    ) -> None:
-        """C = (A*B) mod p"""
-        a = self.check_VariableType(A)
-        b = self.check_ConstantType(B)
-        c = self.check_VariableType(C)
+    def mult_const_modp(self, a: Variable, b: Constant, c: Variable, ensure_modulo=False) -> None:
+        """c = (a*b) mod p"""
+        b = self.check_ConstantType(b)
 
         if len(a) == len(c) == self.length:
             pass
@@ -135,42 +107,35 @@ class ModuloController(ArithmeticController):
             raise ValueError("Length does not match")
 
         ancilla_mult_length = len(a) + len(b) if len(b) != 1 else len(a)
-        ancilla_mult = self.get_bits(ancilla_mult_length)
+        ancilla_mult = self.get_bit(ancilla_mult_length)
         self.multiply_const(a, b, ancilla_mult)
 
         self.modulo_p(ancilla_mult, c, ensure_modulo)
 
-    def square_modp(
-        self, A: VariableType, C: VariableType, ensure_modulo=False
-    ) -> None:
-        """C = (A^2) mod p"""
-
-        a = self.check_VariableType(A)
-        c = self.check_VariableType(C)
+    def square_modp(self, a: Variable, c: Variable, ensure_modulo=False) -> None:
+        """c = (a^2) mod p"""
 
         if len(a) == len(c) == self.length:
             pass
         else:
             raise ValueError("Length does not match")
 
-        ancilla_squ = self.get_bits(2 * self.length)
+        ancilla_squ = self.get_bit(2 * self.length)
         self.square(a, ancilla_squ)
 
         self.modulo_p(ancilla_squ, c, ensure_modulo)
 
     def mult_inv_modp(
-        self, A: VariableType, C: VariableType, ensure_modulo=False
+        self, a: Variable, c: Variable, ensure_modulo=False
     ) -> None:
-        """(A*C) mod p = 1 mod p"""
-        a = self.check_VariableType(A)
-        c = self.check_VariableType(C)
+        """(a*c) mod p = 1 mod p"""
 
         if len(a) == len(c) == self.length:
             pass
         else:
             raise ValueError("Length does not match")
 
-        r = self.get_bits(self.length)
+        r = self.get_bit(self.length)
         self.mult_modp(a, c, r)
 
         self.set_variable_constant(r, 1)
@@ -178,23 +143,19 @@ class ModuloController(ArithmeticController):
         if ensure_modulo:
             self.ensure_modulo(c)
 
-    def inv_modp(self, A: VariableType, C: VariableType, ensure_modulo=False) -> None:
+    def inv_modp(self, a: Variable, c: Variable, ensure_modulo=False) -> None:
         """alias of mult_int_modp"""
-        self.mult_inv_modp(A, C, ensure_modulo)
+        self.mult_inv_modp(a, c, ensure_modulo)
 
-    def div_modp(
-        self, A: VariableType, B: VariableType, C: VariableType, ensure_modulo=False
-    ) -> None:
-        """C = (A/B) mod p => A = (B*C) mod p"""
+    def div_modp(self, a: Variable, b: Variable, c: Variable, ensure_modulo=False) -> None:
+        """c = (a/b) mod p => a = (b*c) mod p"""
 
-        self.mult_modp(B, C, A, ensure_modulo)
+        self.mult_modp(b, c, a, ensure_modulo)
 
     def double_modp(
-        self, A: VariableType, C: VariableType, ensure_modulo=False
+        self, a: Variable, c: Variable, ensure_modulo=False
     ) -> None:
-        """C = (2*A) mod p"""
-        a = self.check_VariableType(A)
-        c = self.check_VariableType(C)
+        """c = (2*a) mod p"""
 
         if len(a) == len(c) == self.length:
             pass
