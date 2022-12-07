@@ -1,145 +1,107 @@
 from ecc.controller.modulo_controller import ModuloController
-from ecc.types import VariableType, ConstantType, Bit
+from ecc.types import Bit, Binary, Name, Variable, Constant
 from ecc.utilities import number_to_binary
+from ecc.point import Point, PointConst
+
+from tqdm import tqdm
 
 
 class EccController(ModuloController):
-    def __init__(self, P, a=7):
+    def __init__(self, P):
         super().__init__(P)
 
-        self.a = a
+    def new_point(self) -> Point:
+        x, y = self.get_bits(self.length, self.length)
+        point = Point(x, y)
+        return point
 
-    def ecc_add(
-        self,
-        X1: VariableType,
-        Y1: VariableType,
-        X2: VariableType,
-        Y2: VariableType,
-        X3: VariableType,
-        Y3: VariableType,
-        ensure_modulo=False,
-    ) -> None:
-        """(X1, Y1) + (X2, Y2) = (X3, Y3)"""
+    def get_len_bit(self) -> Variable:
+        return self.get_bit(self.length)
 
-        x1 = self.check_VariableType(X1)
-        y1 = self.check_VariableType(Y1)
-        x2 = self.check_VariableType(X2)
-        y2 = self.check_VariableType(Y2)
-        x3 = self.check_VariableType(X3)
-        y3 = self.check_VariableType(Y3)
+    def ctrl_select_point(self, A: Point, B: Point, ctrl: Bit, C: Point) -> None:
+        self.ctrl_select_variable(A.x, B.x, ctrl, C.x)
+        self.ctrl_select_variable(A.y, B.y, ctrl, C.y)
 
-        if (
-            len(x1)
-            == len(y1)
-            == len(x2)
-            == len(y2)
-            == len(x3)
-            == len(y3)
-            == self.length
-        ):
-            pass
-        else:
+    def set_point_constant(self, point: Point, const_point: PointConst) -> None:
+        self.set_variable_constant(point.x, const_point.x)
+        self.set_variable_constant(point.y, const_point.y)
+
+    def merge_point(self, point1: Point, point2: Point) -> None:
+        self.merge_variable(point1.x, point2.x)
+        self.merge_variable(point1.y, point2.y)
+
+    def ecc_add(self, A: Point, B: PointConst, C: Point, ensure_modulo=False) -> None:
+        """C = A + B"""
+
+        if not (A.length == B.length == C.length == self.length):
             raise ValueError("Length does not match")
 
         # get lambda
-        y_sub = self.get_bits(self.length)
-        self.sub_modp(y2, y1, y_sub)  # y2-y1
+        y_sub = self.get_len_bit()
+        self.sub_const_modp(A.y, B.y, y_sub)  # y_A-y_B
 
-        x_sub = self.get_bits(self.length)
-        self.sub_modp(x2, x1, x_sub)  # x2-x1
+        x_sub = self.get_len_bit()
+        self.sub_const_modp(A.x, B.x, x_sub)  # x_A-x_B
 
-        lambda_ = self.get_bits(self.length)
-        self.div_modp(y_sub, x_sub, lambda_)  # lambda = (y2-y1) /(x2-x1)
+        lambda_ = self.get_len_bit()
+        self.div_modp(y_sub, x_sub, lambda_)  # lambda = (y_A-y_B) /(x_A-x_B)
 
-        # get x3
-        lambda_squ = self.get_bits(self.length)
+        # get x_C
+        lambda_squ = self.get_len_bit()
         self.square_modp(lambda_, lambda_squ)  # lambda^2
 
-        x3_temp = self.get_bits(self.length)
-        self.sub_modp(lambda_squ, x1, x3_temp)  # lambda^2 -x1
-        self.sub_modp(x3_temp, x2, x3, ensure_modulo)  # x3 = lambda^2 -x1 -x2
+        x_C_temp = self.get_len_bit()
+        self.sub_const_modp(lambda_squ, B.x, x_C_temp)  # lambda^2 -x_B
+        self.sub_modp(x_C_temp, A.x, C.x,
+                      ensure_modulo)  # x_C = lambda^2 -x_B -x_A
 
         # get y3
-        x1_sub = self.get_bits(self.length)
-        self.sub_modp(x1, x3, x1_sub)  # x1-x3
+        ancilla_x_B = self.get_len_bit()  # to not use point negation
+        x_B_sub = self.get_len_bit()
+        self.sub_modp(ancilla_x_B, C.x, x_B_sub)  # x_B-x_C
+        self.set_variable_constant(ancilla_x_B, B.x)
 
-        lambda_mult = self.get_bits(self.length)
-        self.mult_modp(x1_sub, lambda_, lambda_mult)  # lambda *(x1-x3)
-        # y3 = lambda(x1-x3) -y1
-        self.sub_modp(lambda_mult, y1, y3, ensure_modulo)
+        lambda_mult = self.get_len_bit()
+        self.mult_modp(x_B_sub, lambda_, lambda_mult)  # lambda *(x_B-x_C)
 
-    def ecc_sub(
-        self,
-        X1: VariableType,
-        Y1: VariableType,
-        X2: VariableType,
-        Y2: VariableType,
-        X3: VariableType,
-        Y3: VariableType,
-        ensure_modulo=False,
-    ) -> None:
-        """(X3, Y3) = (X1, Y1) - (X2, Y2) => (X1, Y1) = (X2, Y2) + (X3, Y3)"""
+        # y_C = lambda *(x_B-x_C) -y_B
+        self.sub_modp(lambda_mult, B.y, C.y, ensure_modulo)
 
-        self.ecc_add(X2, Y2, X3, Y3, X1, Y1)
+    def ecc_sub(self, A: Point, B: PointConst, C: Point, ensure_modulo=False) -> None:
+        """C = A - B => A = B + C"""
+
+        self.ecc_add(B, C, A)
 
         if ensure_modulo:
-            self.ensure_modulo(X3)
-            self.ensure_modulo(Y3)
+            self.ensure_modulo(C.x)
+            self.ensure_modulo(C.y)
 
-    def ecc_multiply(
-        self,
-        G: tuple[int, int],
-        G_DOUBLES: list[tuple[int, int]],
-        KEY: VariableType,
-        X_OUT: VariableType,
-        Y_OUT: VariableType,
-    ):
-        """(X_OUT, Y_OUT) = KEY * (X_BASE, Y_BASE)"""
-        x_out = self.check_VariableType(X_OUT)
-        y_out = self.check_VariableType(Y_OUT)
-        key = self.check_VariableType(KEY)
+    def ecc_multiply(self, G_DOUBLES: list[PointConst], key: Variable, out_point: Point) -> None:
+        """OUT = KEY * BASE"""
 
-        if len(G_DOUBLES) == len(x_out) == len(y_out) == len(key) == self.length:
-            pass
-        else:
+        if not (len(G_DOUBLES) == out_point.length == len(key) == self.length):
             raise ValueError("Length does not match")
 
-        x_base = self.get_bits(self.length)
-        y_base = self.get_bits(self.length)
+        G = G_DOUBLES[0]
 
-        pre_x = x_base
-        pre_y = y_base
+        base_point = self.get_bits(self.length, self.length)
+        # start from G because implementing point at infinity is expensive
+        pre_point = base_point
 
-        for i in range(self.length):
+        for i in tqdm(range(self.length)):
             # ecc add
-            ancilla_G_x = self.get_bits(self.length)
-            ancilla_G_y = self.get_bits(self.length)
+            ancilla_add = self.new_point()
+            self.ecc_add(pre_point, G_DOUBLES[i], ancilla_add)
 
-            ancilla_add_x = self.get_bits(self.length)
-            ancilla_add_y = self.get_bits(self.length)
-            self.ecc_add(pre_x, pre_y, ancilla_G_x, ancilla_G_y,
-                         ancilla_add_x, ancilla_add_y)
+            # add if bit is 1
+            new_point = self.new_point()
+            self.ctrl_select_point(pre_point, ancilla_add, key[i], new_point)
 
-            self.set_variable_constant(ancilla_G_x, G_DOUBLES[i][0])
-            self.set_variable_constant(ancilla_G_y, G_DOUBLES[i][1])
+            pre_point = new_point
 
-            # add if ctrl
-            new_x = self.get_bits(self.length)
-            new_y = self.get_bits(self.length)
-            self.ctrl_select_variable(pre_x, ancilla_add_x, key[i], new_x)
-            self.ctrl_select_variable(pre_y, ancilla_add_y, key[i], new_y)
+        # subtract G because we started from G
+        new_point = self.new_point()
+        self.ecc_sub(pre_point, base_point, new_point)
 
-            pre_x = new_x
-            pre_y = new_y
-
-        # subtract G
-        new_x = self.get_bits(self.length)
-        new_y = self.get_bits(self.length)
-        self.ecc_sub(pre_x, pre_y, x_base, y_base, new_x, new_y)
-
-        for i in range(self.length):
-            x_out[i].index = new_x[i].index
-            y_out[i].index = new_y[i].index
-
-        self.set_variable_constant(x_base, G[0])
-        self.set_variable_constant(y_base, G[1])
+        self.merge_point(new_point, out_point)
+        self.set_point_constant(base_point, G)
