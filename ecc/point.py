@@ -1,23 +1,37 @@
-from ecc.bit import Bit
+from ecc.types import Variable, Constant
 
 
 class Point:
-    def __init__(self, x: list[Bit], y: list[Bit]):
+    def __init__(self, x: Variable, y: Variable):
+        if len(x) != len(y):
+            raise ValueError('Length of x and y is different')
+
+        self.length = len(x)
         self._x = x
         self._y = y
 
     @property
-    def x(self) -> list[Bit]:
+    def x(self) -> Variable:
         return self._x
 
-    @x.setter
-    def x(self, value) -> None:
-        self._x = value
-
     @property
-    def y(self) -> list[Bit]:
+    def y(self) -> Variable:
         return self._y
 
-    @y.setter
-    def y(self, value) -> None:
-        self._y = value
+
+class PointConst:
+    def __init__(self, x: Constant, y: Constant):
+        if len(x) != len(y):
+            raise ValueError('Length of x and y is different')
+
+        self.length = len(x)
+        self._x = x
+        self._y = y
+
+    @property
+    def x(self) -> Constant:
+        return self._x
+
+    @property
+    def y(self) -> Constant:
+        return self._y
