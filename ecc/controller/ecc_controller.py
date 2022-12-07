@@ -1,6 +1,6 @@
 from ecc.controller.modulo_controller import ModuloController
 from ecc.types import Bit, Binary, Name, Variable, Constant
-from ecc.utilities import number_to_binary
+from ecc.utilities.number_to_binary import number_to_binary
 from ecc.point import Point, PointConst
 
 from tqdm import tqdm

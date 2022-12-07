@@ -7,7 +7,7 @@ from dimod.sampleset import SampleSet
 
 from ecc.types import Constant, Variable, Bit, Name, Binary
 from ecc.controller.base_controller import BaseController
-from ecc.utilities import number_to_binary
+from ecc.utilities.number_to_binary import number_to_binary
 
 
 class BitController(BaseController):

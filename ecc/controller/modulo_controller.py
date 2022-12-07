@@ -1,6 +1,6 @@
 from ecc.controller.arithmetic_controller import ArithmeticController
 from ecc.types import Variable, Constant
-from ecc.utilities import number_to_binary
+from ecc.utilities.number_to_binary import number_to_binary
 
 
 class ModuloController(ArithmeticController):
