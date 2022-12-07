@@ -6,25 +6,33 @@ It does have some drawbacks, such as nonreusable ancilla bits, requiring more bi
 
 # Glossary
 
-## Bit
+### Bit
 
 Represents a single bit. Used at upper level.
 
-## Variable
+---
+
+### Variable
 
 Represents a list of bits.
 
-## Name
+---
+
+### Name
 
 Represents bit's name(equivalent to dimod's variable). Used at lower level for interacting with BinaryQuadraticModel.
 
-## Constant
+---
+
+### Constant
 
 (1) Mapping from bit to constant binary. Constant values are set before running solver to make it more flexible, allowing interaction between constant and bit.
 
 (2) Fixed value, usually known before the computation. Used to indicate method's parameter.
 
-## Controller
+---
+
+### Controller
 
 Controls creation and interaction of bits, separated by 6 different parts.
 
@@ -104,8 +112,6 @@ Consider A as fixed, set result to constant 1. This makes modular multiplicative
 
 Consider fixed bit a, b, and ctrl, c is selected either a or b. Used for implementing ECC Multiply.
 
----
-
 ## ECC Operations
 
 [ECC Double](https://en.wikipedia.org/wiki/Elliptic_curve_point_multiplication#Point_doubling) can be implemented, but to reduce the number of bits, it is not used.
@@ -125,8 +131,6 @@ For fixed point A, constant point B, calculate point C.
 **key\*G = OUT**
 
 For unknown variable key, constant base point G, calculate point C. Since point at infinity is expensive to implement in quantum annealer, it starts on point G resulting in **(key+1)\*G**. G is later subtracted to get **key\*G**. It uses precalculated doubles of G, removing the need for ECC Double and reduce the number of bits used. Control Select is used to add doubled G if current key's bit is 1.
-
----
 
 ## Controller
 
@@ -168,9 +172,7 @@ Controls modular arithmetic operations, such as add_modp, mult_modp
 
 Controls ECC operations, such as ecc_add, ecc_multiply.
 
----
-
-TODO
+# TODO
 
 - [ ] extract_variable, Add type for parameter sample, dimod.sampleset.Sample
 - [ ] Create a method for getting graph of bqm
